@@ -1,22 +1,32 @@
 /**
- * The part of a Stream Deck key the actions use. The SDK's `KeyAction` is one, and a test's fake is
+ * What every control on a deck can do, whether it is a key or a dial.
+ *
+ * The two diverge more than they look: a dial has `setFeedback` and no `setState`, and it has
+ * `showAlert` but no `showOk`, because the tick is drawn on a key face that a dial does not have.
+ * So this holds only what both are sure to have, and `PlayerKeys` is written against it.
+ */
+export interface ControlFace {
+    readonly id: string;
+    /**
+     * Writes this control's own settings.
+     *
+     * Here rather than reached for through the SDK, because the SDK has no way to find an action by
+     * its id: settings are written through the action object, and the face is the only handle on it
+     * a key class has. It is used for one thing, which is a control adopting the default player.
+     */
+    setSettings(settings: Record<string, unknown>): Promise<void>;
+    showAlert(): Promise<void>;
+}
+
+/**
+ * The part of a Stream Deck KEY the actions use. The SDK's `KeyAction` is one, and a test's fake is
  * another, which is what keeps every decision about a key testable without the Stream Deck app.
  */
-export interface KeyFace {
-    readonly id: string;
+export interface KeyFace extends ControlFace {
     setTitle(title?: string): Promise<void>;
     setImage(image?: string): Promise<void>;
     setState(state: number): Promise<void>;
     showOk(): Promise<void>;
-    showAlert(): Promise<void>;
-    /**
-     * Writes this key's own settings.
-     *
-     * Here rather than reached for through the SDK, because the SDK has no way to find an action by
-     * its id: settings are written through the action object, and the face is the only handle on it
-     * a key class has. It is used for one thing, which is a key adopting the default player.
-     */
-    setSettings(settings: Record<string, unknown>): Promise<void>;
 }
 
 /** What a key should show. An absent field is left as it is; `setImage(undefined)` is the manifest's own image. */

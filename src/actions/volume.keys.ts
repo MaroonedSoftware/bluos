@@ -6,7 +6,7 @@ import { volumeSvg } from '../display/volume.image.js';
 import { VolumeModel } from '../volume/volume.model.js';
 import { VolumeWriter } from '../volume/volume.writer.js';
 import type { KeyFace } from './key.face.js';
-import { PlayerKeys } from './player.keys.js';
+import { KeyControls } from './key.controls.js';
 import { volumeOptionsFrom, type VolumeKeySettings, type VolumeOptions } from './volume.options.js';
 
 /** How long a key must be held before it starts repeating, and how fast it repeats after that. */
@@ -37,7 +37,7 @@ interface Knob {
  * classes with no HTTP and no SDK in them: everything hard about volume is tested once and both
  * shells stay thin.
  */
-export class VolumeKeys extends PlayerKeys {
+export class VolumeKeys extends KeyControls {
     private readonly volumes = new Map<string, Knob>();
 
     override appear(face: KeyFace, settings: VolumeKeySettings): void {

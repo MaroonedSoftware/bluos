@@ -1,6 +1,6 @@
 import { describe } from '../bluos/connection.failure.js';
 import { refuse, runCommand } from './command.outcome.js';
-import { PlayerKeys } from './player.keys.js';
+import { KeyControls } from './key.controls.js';
 
 /** Which way a key moves through the queue. */
 export type Direction = 'next' | 'previous';
@@ -17,7 +17,7 @@ export type Direction = 'next' | 'previous';
  * Where a screen would disable the control, a Stream Deck key cannot be greyed out, so it takes the
  * press and declines it. The warning triangle says something happened; the log says what.
  */
-export abstract class SkipKeys extends PlayerKeys {
+export abstract class SkipKeys extends KeyControls {
     async press(id: string): Promise<void> {
         const face = this.face(id);
         const reading = this.readingOf(id);

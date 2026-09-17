@@ -228,13 +228,19 @@ reading: a specific state, or a title the player supplied.
 `FakeDeck.next` searches what has already arrived, which is usually right and part of the same trap.
 Pass `from`, taken from `deck.mark` before the thing under test, to wait for a genuinely new message.
 
-**The bundle tests need generous timeouts, and that is not laziness.** Two files launch the built
-bundle in a child process and wait for it to register over a socket, and vitest runs files in
-parallel, so a run can have several Node processes starting at once. At vitest's default five
-seconds the suite failed about two runs in five, always on whichever bundle test started first.
-`testTimeout` is 20 seconds and `FakeDeck`'s own is 15, deliberately shorter, so the failure comes
-from the harness with a list of what the plugin actually said rather than as a bare "test timed
-out".
+**Every launched plugin gets its own working directory, and that is the fix for a flake that was
+twice mistaken for a timeout.** The SDK rotates its log files on startup by renaming each to the
+next number. Vitest runs files in parallel, so two plugins starting at once both try to rename the
+same file, one loses with `ENOENT: rename ...8.log -> ...9.log`, and that process DIES before it
+ever connects. From the test's side it is indistinguishable from a slow start, which is why raising
+the timeout appeared to help and did not. `FakeDeck` now copies `manifest.json` into a throwaway
+directory and launches from there. It also keeps test runs out of the log of whatever real plugin
+happens to be installed, which they were quietly polluting.
+
+**The bundle tests still have generous timeouts**, because a Node process starting while sixteen
+other test files run is genuinely slow. `testTimeout` is 20 seconds and `FakeDeck`'s own is 15,
+deliberately shorter, so a failure comes from the harness with a list of what the plugin actually
+said rather than as a bare "test timed out".
 
 **The end-to-end panel test serves a real player on loopback.** The bundle runs in its own process
 and cannot be handed a fake `fetch`, so `tests/fixtures/serve.player.ts` answers real HTTP with the

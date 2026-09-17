@@ -1,6 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { copyFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 
 /**
@@ -15,11 +16,21 @@ import { WebSocketServer, type WebSocket } from 'ws';
  * It drives the built file on purpose. A test that imports `src/` would pass while the bundle was
  * broken, and the bundle is what ships.
  *
- * The plugin is spawned with its WORKING DIRECTORY set to the `.sdPlugin` folder, which is where
- * the app runs it from and is not optional: the SDK reads `manifest.json` off the current directory
- * the first time an action is registered. Launch it from anywhere else and it throws "Failed to
- * read manifest.json as the file does not exist" before it ever opens a socket — and because the
- * SDK leaves the web socket's `onerror` unhandled, the failure shows up only as a silent exit 0.
+ * The plugin is spawned with its WORKING DIRECTORY set to a throwaway folder holding a COPY of
+ * `manifest.json`, and that is not fussiness on two counts.
+ *
+ * It needs a directory with the manifest in it at all, because the SDK reads `manifest.json` off
+ * the current directory the first time an action is registered. Launch it from anywhere else and it
+ * throws "Failed to read manifest.json as the file does not exist" before it ever opens a socket,
+ * and because the SDK leaves the web socket's `onerror` unhandled, the failure shows up only as a
+ * silent exit 0 with no output at all. That cost an hour on the first day.
+ *
+ * And it needs its OWN directory rather than the real plugin folder, because the SDK rotates its
+ * log files on startup by renaming each to the next number. Vitest runs files in parallel, so two
+ * plugins starting at once both try to rename the same file, one loses with
+ * `ENOENT: rename ...8.log -> ...9.log`, and that process DIES before connecting. It looked exactly
+ * like a timeout and was chased as one twice. A private directory also keeps test runs out of the
+ * log of whatever real plugin happens to be installed.
  */
 const PLUGIN_DIR = resolve(import.meta.dirname, '../../com.maroonedsoftware.bluos.sdPlugin');
 const BUNDLE = resolve(PLUGIN_DIR, 'bin/plugin.js');
@@ -60,6 +71,7 @@ export class FakeDeck {
     private readonly options: Required<FakeDeckOptions>;
     private socket?: WebSocket;
     private child?: ChildProcess;
+    private home?: string;
     /** Everything the plugin has said, in order, so a test can assert on what it missed. */
     readonly received: FromPlugin[] = [];
     /** Each key's own settings, as the app stores them against its context. */
@@ -83,6 +95,9 @@ export class FakeDeck {
         const server = new WebSocketServer({ host: '127.0.0.1', port: 0 });
         await new Promise<void>(done => server.once('listening', done));
         const deck = new FakeDeck(server, { version: '0.1.0.0', timeoutMs: 15_000, ...options });
+
+        deck.home = mkdtempSync(join(tmpdir(), 'bluos-deck-'));
+        copyFileSync(join(PLUGIN_DIR, 'manifest.json'), join(deck.home, 'manifest.json'));
 
         server.on('connection', socket => {
             deck.socket = socket;
@@ -108,7 +123,7 @@ export class FakeDeck {
             process.execPath,
             [BUNDLE, '-port', String(port), '-pluginUUID', PLUGIN_UUID, '-registerEvent', 'registerPlugin', '-info', JSON.stringify(info)],
             {
-                cwd: PLUGIN_DIR,
+                cwd: deck.home,
                 stdio: ['ignore', 'pipe', 'pipe'],
             },
         );
@@ -230,6 +245,8 @@ export class FakeDeck {
         this.child?.kill('SIGKILL');
         this.child = undefined;
         await new Promise<void>(done => this.server.close(() => done()));
+        if (this.home !== undefined) rmSync(this.home, { recursive: true, force: true });
+        this.home = undefined;
     }
 
     /**

@@ -1,6 +1,6 @@
 import { describe } from '../bluos/connection.failure.js';
 import { refuse, runCommand } from './command.outcome.js';
-import { PlayerKeys } from './player.keys.js';
+import { KeyControls } from './key.controls.js';
 
 /** The manifest's two states, in its order. */
 export const PAUSE = 0;
@@ -17,7 +17,7 @@ export const PLAY = 1;
  * There is no arming, unlike the sibling plugin's Stop. That key guards a live radio station going
  * off air; pausing a speaker is undone by pressing again.
  */
-export class TransportKeys extends PlayerKeys {
+export class TransportKeys extends KeyControls {
     async press(id: string): Promise<void> {
         const face = this.face(id);
         const reading = this.readingOf(id);

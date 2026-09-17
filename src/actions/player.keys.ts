@@ -1,7 +1,7 @@
 import type { Reading, StatusWatcher } from '../bluos/status.watcher.js';
 import type { WatcherPool } from '../bluos/watcher.pool.js';
 import { addressToAdopt, originFor, type GlobalSettings, type PlayerSettings } from '../player.settings.js';
-import { FacePainter, type Frame, type KeyFace } from './key.face.js';
+import type { ControlFace } from './key.face.js';
 
 /** What a key needs from the world, so a test can hand it something simpler than the SDK. */
 export interface KeysWorld {
@@ -11,8 +11,8 @@ export interface KeysWorld {
     log: (sentence: string) => void;
 }
 
-interface Held {
-    face: KeyFace;
+interface Held<F extends ControlFace> {
+    face: F;
     /** The player this key is pointed at, or `undefined` while it has none. */
     origin?: string;
     watcher?: StatusWatcher;
@@ -36,9 +36,8 @@ const NOTHING: Reading = { failure: 'unconfigured', stale: false };
  * Six keys on one player still cost one long-poll, because the pool hands them the same watcher.
  * What changed is who holds it, not how many there are.
  */
-export abstract class PlayerKeys {
-    protected readonly painter = new FacePainter();
-    private readonly held = new Map<string, Held>();
+export abstract class PlayerKeys<F extends ControlFace = ControlFace> {
+    private readonly held = new Map<string, Held<F>>();
 
     constructor(protected readonly world: KeysWorld) {}
 
@@ -62,17 +61,13 @@ export abstract class PlayerKeys {
         return this.held.get(id)?.watcher;
     }
 
-    protected face(id: string): KeyFace | undefined {
-        return this.painter.get(id);
+    protected face(id: string): F | undefined {
+        return this.held.get(id)?.face;
     }
 
-    protected paint(id: string, frame: Frame): void {
-        this.painter.paint(id, frame);
-    }
-
-    appear(face: KeyFace, settings: PlayerSettings): void {
-        this.painter.add(face);
+    appear(face: F, settings: PlayerSettings): void {
         this.held.set(face.id, { face, reading: NOTHING });
+        this.onAdd(face);
 
         // A key with no address of its own takes the last player chosen anywhere and WRITES it into
         // itself, rather than falling back quietly every time it is used. See player.settings.ts.
@@ -87,7 +82,7 @@ export abstract class PlayerKeys {
 
     disappear(id: string): void {
         this.letGo(id);
-        this.painter.remove(id);
+        this.onRemove(id);
         this.held.delete(id);
         this.onDisappear(id);
         // A watcher whose last key has gone stops on its own after a pause, so this only clears out
@@ -113,8 +108,14 @@ export abstract class PlayerKeys {
     /** Draws one key. Called on every reading it hears, and whenever the action changes something. */
     protected abstract render(id: string): void;
 
-    /** A key appeared, after it has been pointed at its player. */
+    /** A control appeared, after it has been pointed at its player. */
     protected onAppear(_id: string): void {}
+
+    /** A control was added, before anything else happens, so a painter can take hold of it. */
+    protected onAdd(_face: F): void {}
+
+    /** A control is going, before its hold is let go. */
+    protected onRemove(_id: string): void {}
 
     /** A key went, before its hold is let go. */
     protected onDisappear(_id: string): void {}

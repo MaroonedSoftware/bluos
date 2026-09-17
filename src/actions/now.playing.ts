@@ -5,7 +5,8 @@ import { asKeyImage, nowPlayingSvg, progressStep } from '../display/key.image.js
 import { PlayheadClock, projectPlayhead, TICK_MS } from '../display/playhead.js';
 import type { KeyFace } from './key.face.js';
 import { optionsFrom, SHOW_EVERYTHING, type NowPlayingKeySettings, type NowPlayingOptions } from './now.playing.options.js';
-import { PlayerKeys, type KeysWorld } from './player.keys.js';
+import { KeyControls } from './key.controls.js';
+import type { KeysWorld } from './player.keys.js';
 
 /**
  * The words a Now Playing key shows.
@@ -38,7 +39,7 @@ interface Drawn {
  * left out of the player's etag, so a long-poll that only answers on a change would leave the bar
  * frozen for the length of a track. The specification says as much and puts the job on the client.
  */
-export class NowPlayingKeys extends PlayerKeys {
+export class NowPlayingKeys extends KeyControls {
     private readonly drawn = new Map<string, Drawn>();
     private ticker?: ReturnType<typeof setInterval>;
 
