@@ -155,6 +155,38 @@ undone by pressing again.
 to resume when in a pause state but not when in stop state." A stopped player has nothing loaded, so
 the log says to choose something in the BluOS app first.
 
+## Finding players
+
+**The browse runs in the PLUGIN process, and it has to.** The settings panel is a Chromium page
+with no `dgram`, no raw sockets and no multicast. Writing that down because it is exactly the thing
+somebody will later try to simplify by moving it into the panel.
+
+**Two service types, `musc` and `musp`, because those are the two the specification names.** The
+`musz` and `mush` types that some third-party clients browse are not in it. Appendix 13.1's LSDP is
+the documented alternative if these ever fail.
+
+**Every find is confirmed with `/SyncStatus` before it is offered.** An mDNS answer says something
+is there; only the player's own response says what it IS, gives it the name its owner chose, and
+reveals that it has never been set up. The port comes from the answer rather than being assumed,
+because port 11000 is not universal.
+
+**The browser is never left running.** It holds a multicast socket and goes on answering the whole
+network's queries, so it browses for five seconds and stops, and stops again when the panel closes.
+
+**The list and the address field are ONE setting.** Choosing from the list fills the field in, and
+the field is what a key uses. There is no auto-or-manual mode, which kills the whole class of "I
+picked a device but it is still using the old address" confusions, and it meant discovery was purely
+additive to a field that already existed.
+
+**A network that filters multicast is a normal path, not an exception.** IoT VLANs, client isolation
+and several mesh routers block it. Finding nothing is explained in words and the manual field is
+always there, and "the browse ran and heard nothing" is worded differently from "the socket would
+not open", because those are fixed in different places.
+
+**`DiscoveredPlayer` is a type alias rather than an interface**, and not as a matter of taste: it is
+sent through `sendToPropertyInspector`, which takes a JSON value, and an interface does not satisfy
+an index signature. The settings types are aliases for the same reason.
+
 ## The dial
 
 **`PlayerKeys` is generic over the control, and `KeyControls` adds the painter.** A dial and a key

@@ -22,7 +22,20 @@ export function inspectorMessages(uuid: string, action: string) {
         /** The player the next freshly dragged key will start on. */
         setGlobalSettings: (settings: GlobalSettings) => ({ event: 'setGlobalSettings', context: uuid, payload: settings }),
         testConnection: () => ({ event: 'sendToPlugin', action, context: uuid, payload: { event: 'testConnection' } satisfies ToPlugin }),
+        discover: () => ({ event: 'sendToPlugin', action, context: uuid, payload: { event: 'discover' } satisfies ToPlugin }),
     };
+}
+
+/**
+ * How a found player reads in the list.
+ *
+ * The address is in there because two rooms can hold the same model, and somebody with three NODEs
+ * needs to tell them apart by something.
+ */
+export function playerLabel(player: { name: string; model?: string; address: string; needsSetup?: boolean }): string {
+    const model = player.model === undefined ? '' : ` — ${player.model}`;
+    const setup = player.needsSetup === true ? ' (needs setting up)' : '';
+    return `${player.name}${model}${setup} · ${player.address}`;
 }
 
 /** The settings as typed: trimmed, and absent rather than empty. */

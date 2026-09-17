@@ -1,6 +1,6 @@
 import { parseAddress } from '../bluos/address.js';
-import { isToInspector } from './inspector.messages.js';
-import { inspectorMessages, settingsFrom } from './inspector.protocol.js';
+import { isConnectionAnswer, isPlayersAnswer } from './inspector.messages.js';
+import { inspectorMessages, playerLabel, settingsFrom } from './inspector.protocol.js';
 
 /**
  * The settings panel's script, run by the Stream Deck app in its own browser beside `player.html`.
@@ -53,6 +53,8 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     const display = field<HTMLDivElement>('display');
     const showTitle = field<HTMLInputElement>('showTitle');
     const showProgress = field<HTMLInputElement>('showProgress');
+    const found = field<HTMLSelectElement>('found');
+    const again = field<HTMLButtonElement>('again');
     const volume = field<HTMLDivElement>('volume');
     const direction = field<HTMLSelectElement>('direction');
     const step = field<HTMLInputElement>('step');
@@ -98,6 +100,41 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         if (typed !== '') send(messages.setGlobalSettings({ defaultAddress: typed }));
     };
 
+    /**
+     * Shows what the plugin found on the network.
+     *
+     * The list and the field are ONE setting: choosing from the list fills the field in, and the
+     * field is what a key actually uses. There is no auto-or-manual mode, which kills the whole
+     * class of "I picked a device but it is still using the old address" confusions.
+     */
+    const listPlayers = (
+        players: { name: string; model?: string; address: string; needsSetup?: boolean }[],
+        browsing: boolean,
+        outcome: string,
+    ): void => {
+        const first =
+            browsing && players.length === 0
+                ? 'Looking for players…'
+                : players.length === 0
+                  ? outcome === 'unavailable'
+                      ? 'Could not search the network'
+                      : 'No players answered'
+                  : 'Choose a player…';
+        found.replaceChildren(new Option(first, ''), ...players.map(player => new Option(playerLabel(player), player.address)));
+        found.value = players.some(player => player.address === address.value.trim()) ? address.value.trim() : '';
+        again.disabled = browsing;
+
+        if (browsing || players.length > 0) return;
+        // A network that filters multicast is a normal thing, not a fault, so it is explained
+        // rather than left as an empty list somebody stares at.
+        say(
+            outcome === 'unavailable'
+                ? 'The network could not be searched. Enter the player’s address below instead.'
+                : 'No players answered. Multicast may be blocked between this computer and the player. Enter its address below instead.',
+            'quiet',
+        );
+    };
+
     /** Asks the plugin what it makes of the settings it was handed. */
     const check = (): void => {
         const parsedAddress = parseAddress(address.value);
@@ -125,6 +162,7 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         // A key that has never been configured may still have adopted the default by the time the
         // panel opens, so ask the app rather than trusting what came with the panel.
         send(messages.getSettings());
+        send(messages.discover());
         say('', 'quiet');
     });
 
@@ -142,7 +180,12 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
             showStep();
             return;
         }
-        if (message.event === 'sendToPropertyInspector' && isToInspector(message.payload)) {
+        if (message.event !== 'sendToPropertyInspector') return;
+        if (isPlayersAnswer(message.payload)) {
+            listPlayers(message.payload.players, message.payload.browsing, message.payload.outcome);
+            return;
+        }
+        if (isConnectionAnswer(message.payload)) {
             if (!asking) return;
             asking = false;
             say(message.payload.text, message.payload.ok ? 'ok' : 'bad');
@@ -162,6 +205,16 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         check();
     });
     test.addEventListener('click', () => {
+        save();
+        check();
+    });
+    again.addEventListener('click', () => {
+        again.disabled = true;
+        send(messages.discover());
+    });
+    found.addEventListener('change', () => {
+        if (found.value === '') return;
+        address.value = found.value;
         save();
         check();
     });

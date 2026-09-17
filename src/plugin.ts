@@ -13,6 +13,8 @@ import { VolumeDial } from './actions/volume.dial.js';
 import { VolumeKeys } from './actions/volume.keys.js';
 import { probePlayer } from './bluos/probe.js';
 import { ArtworkCache } from './display/artwork.js';
+import { bonjourBrowser } from './discovery/bonjour.browser.js';
+import { Discovery } from './discovery/discovery.js';
 import { WatcherPool } from './bluos/watcher.pool.js';
 import { isToPlugin, type ToInspector } from './inspector/inspector.messages.js';
 import { addressFor, describeSettings, type GlobalSettings, type PlayerSettings } from './player.settings.js';
@@ -58,6 +60,21 @@ streamDeck.actions.registerAction(new VolumeDialAction(dial));
 /** Every set of keys, for the events that are about all of them rather than about one key. */
 const everyKey = [nowPlaying, transport, next, previous, volume, dial];
 
+const discovery = new Discovery({ browser: bonjourBrowser(), client: { userAgent } });
+
+/** Tells the open panel what is on the network, as it is found. */
+function reportPlayers(): void {
+    discovery.browse((players, browsing, outcome) => {
+        if (streamDeck.ui.action === undefined) {
+            // Nobody is listening any more, so there is no reason to keep a multicast socket open.
+            discovery.stop();
+            return;
+        }
+        const message: ToInspector = { event: 'players', players, browsing, outcome };
+        void streamDeck.ui.sendToPropertyInspector(message);
+    });
+}
+
 /**
  * Tells the open settings panel what the plugin makes of the address it was handed.
  *
@@ -89,8 +106,14 @@ streamDeck.settings.onDidReceiveGlobalSettings<GlobalSettings>(async ev => {
 });
 
 streamDeck.ui.onSendToPlugin(ev => {
-    if (isToPlugin(ev.payload)) void reportConnection();
+    if (!isToPlugin(ev.payload)) return;
+    if (ev.payload.event === 'discover') reportPlayers();
+    else void reportConnection();
 });
+
+// The panel closed, so the browse has nobody to tell. An mDNS browser left running holds a
+// multicast socket and goes on answering the whole network's queries.
+streamDeck.ui.onDidDisappear(() => discovery.stop());
 
 // A key's own player changed. The panel writes the address with `setSettings` and the app delivers
 // it here, which is what re-points the key: the panel never tells the plugin what it thinks it typed.
