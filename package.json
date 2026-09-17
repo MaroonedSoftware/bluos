@@ -13,8 +13,9 @@
         "test": "tsup && vitest run",
         "validate": "streamdeck validate com.maroonedsoftware.bluos.sdPlugin --no-update-check",
         "installer": "rm -rf artifacts && mkdir -p artifacts/staging && cp -R com.maroonedsoftware.bluos.sdPlugin artifacts/staging/ && streamdeck pack artifacts/staging/com.maroonedsoftware.bluos.sdPlugin --output artifacts --force --no-update-check && rm -rf artifacts/staging",
-        "link": "streamdeck link com.maroonedsoftware.bluos.sdPlugin",
-        "restart": "streamdeck restart com.maroonedsoftware.bluos"
+        "deck:link": "streamdeck link com.maroonedsoftware.bluos.sdPlugin",
+        "deck:restart": "streamdeck restart com.maroonedsoftware.bluos",
+        "deck:dev": "streamdeck dev"
     },
     "devDependencies": {
         "@elgato/cli": "^1.9.0",

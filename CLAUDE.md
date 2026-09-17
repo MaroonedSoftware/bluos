@@ -182,10 +182,18 @@ calls in place. The banner in `tsup.config.ts` is `createRequire(import.meta.url
 standard (TC39) decorator, and `experimentalDecorators` types it as the legacy kind. Turning both
 off is what lets `tsc` accept it and esbuild lower it.
 
-**`pnpm pack` is pnpm's own tarball command** and wins over a script of that name, which is why the
-script that builds the installer is called `installer`. It packs a copy of the plugin folder,
-because `streamdeck pack` rewrites the manifest it packs in its own formatting and a local pack
-should not leave the tree dirty.
+**Three of the obvious script names are pnpm's own commands, and pnpm wins.** `pnpm pack` is its
+tarball command, `pnpm link` is its global-link command, and `pnpm restart` is a lifecycle wrapper
+that runs stop, restart and start. A script of any of those names is shadowed: `pnpm link` reports
+"The configured global bin directory is not in PATH" and never reaches `streamdeck link` at all.
+
+`pnpm run link` would work, but a name that only works when you remember a word is a trap. So the
+scripts are named to avoid the collision outright: `installer` builds the packed plugin, and the
+three that drive the Stream Deck app are `deck:link`, `deck:restart` and `deck:dev`. The sibling
+plugin renamed `pack` for this reason and left `link` alone, which is the bug this inherited.
+
+`installer` packs a COPY of the plugin folder, because `streamdeck pack` rewrites the manifest it
+packs in its own formatting and a local pack should not leave the tree dirty.
 
 **pnpm settings live in `pnpm-workspace.yaml`**, not in package.json, which pnpm 11 ignores with a
 warning. `allowBuilds: esbuild: true` is required or tsup has no binary to run, and
@@ -200,7 +208,11 @@ pnpm test         # builds first, because two tests drive the BUILT bundle
 pnpm typecheck    # tsc over tests and tools as well as src
 pnpm lint
 pnpm validate     # Elgato's validator; needs the network, see below
-pnpm run installer
+pnpm installer    # builds the packed .streamDeckPlugin
+
+pnpm deck:dev     # turn on developer mode, once per machine
+pnpm deck:link    # symlink the plugin folder into the Stream Deck app
+pnpm deck:restart # reload the running plugin after a build
 ```
 
 **`streamdeck validate` fetches the manifest's `URL` and `SupportURL`.** Until this repository exists

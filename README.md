@@ -25,11 +25,17 @@ pnpm build
 pnpm test
 ```
 
-To run it on a deck, turn on developer mode once with `streamdeck dev`, then:
+To run it on a deck, turn on developer mode once, then link it:
 
 ```bash
-pnpm link
-pnpm restart
+pnpm deck:dev
+pnpm deck:link
+```
+
+After every build, reload the running plugin, or the settings panel and the plugin disagree:
+
+```bash
+pnpm deck:restart
 ```
 
 ## Licence
