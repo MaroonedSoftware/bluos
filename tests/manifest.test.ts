@@ -2,6 +2,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { readFileSync as read } from 'node:fs';
+
 import { ACTION_IDS, PLUGIN, VOLUME_DIAL } from '../src/actions/action.ids.js';
 
 // `streamdeck validate` checks much of this too, but it fetches the manifest's URLs first and so
@@ -102,10 +104,17 @@ describe('the dial’s layout', () => {
         expect(named).toBe('layouts/volume.json');
     });
 
-    // A key passed to `setFeedback` that the layout never declared fails silently: nothing errors,
-    // and nothing draws. This is the test that catches the typo.
+    // A key passed to `setFeedback` that the layout never declared fails SILENTLY: nothing errors,
+    // and nothing draws. So the layout is checked against the keys the code actually sends, read
+    // out of the source, rather than against a list written twice and left to drift.
     it('declares every item the dial sends feedback to', () => {
-        expect(layout.items.map(item => item.key).sort()).toEqual(['icon', 'indicator', 'title', 'value']);
+        const source = read(resolve(import.meta.dirname, '../src/display/dial.face.ts'), 'utf8');
+        const frame = /export interface DialFrame \{([^}]*)\}/.exec(source)?.[1] ?? '';
+        const sent = [...frame.matchAll(/^\s*(\w+)\??:/gm)].map(match => match[1] as string);
+
+        expect(sent.length).toBeGreaterThan(0);
+        const declared = layout.items.map(item => item.key);
+        for (const key of sent) expect(declared, `the layout has no "${key}" for setFeedback to fill`).toContain(key);
     });
 
     it('keeps every item inside the 200 x 100 touch strip', () => {

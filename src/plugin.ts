@@ -8,6 +8,8 @@ import { NextKeys, PreviousKeys } from './actions/skip.keys.js';
 import { TransportAction } from './actions/transport.action.js';
 import { TransportKeys } from './actions/transport.keys.js';
 import { VolumeAction } from './actions/volume.action.js';
+import { VolumeDialAction } from './actions/volume.dial.action.js';
+import { VolumeDial } from './actions/volume.dial.js';
 import { VolumeKeys } from './actions/volume.keys.js';
 import { probePlayer } from './bluos/probe.js';
 import { ArtworkCache } from './display/artwork.js';
@@ -36,20 +38,25 @@ const world: KeysWorld = {
     log: sentence => logger.info(sentence),
 };
 
-const nowPlaying = new NowPlayingKeys(world, new ArtworkCache({ userAgent }));
+// One cache for the whole plugin: a Now Playing key and a dial on the same player want the same
+// cover, and fetching it twice would be two requests for one picture.
+const artwork = new ArtworkCache({ userAgent });
+const nowPlaying = new NowPlayingKeys(world, artwork);
 const transport = new TransportKeys(world);
 const next = new NextKeys(world);
 const previous = new PreviousKeys(world);
 const volume = new VolumeKeys(world);
+const dial = new VolumeDial(world, artwork);
 
 streamDeck.actions.registerAction(new NowPlayingAction(nowPlaying));
 streamDeck.actions.registerAction(new TransportAction(transport));
 streamDeck.actions.registerAction(new NextAction(next));
 streamDeck.actions.registerAction(new PreviousAction(previous));
 streamDeck.actions.registerAction(new VolumeAction(volume));
+streamDeck.actions.registerAction(new VolumeDialAction(dial));
 
 /** Every set of keys, for the events that are about all of them rather than about one key. */
-const everyKey = [nowPlaying, transport, next, previous, volume];
+const everyKey = [nowPlaying, transport, next, previous, volume, dial];
 
 /**
  * Tells the open settings panel what the plugin makes of the address it was handed.

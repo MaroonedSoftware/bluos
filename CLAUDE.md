@@ -155,6 +155,41 @@ undone by pressing again.
 to resume when in a pause state but not when in stop state." A stopped player has nothing loaded, so
 the log says to choose something in the BluOS app first.
 
+## The dial
+
+**`PlayerKeys` is generic over the control, and `KeyControls` adds the painter.** A dial and a key
+share only the fact that they follow a player. The SDK makes the same split: a dial has
+`setFeedback` and no `setState`, and it has `showAlert` but no `showOk`, because the tick is drawn
+on a key face a dial does not have. So `ControlFace` holds what both are sure to have, and the
+painter lives one layer down where there is a key to paint.
+
+**The model and the writer are shared with the volume key, and that is the point of them.** They
+have no HTTP and no SDK in them, so the coalescing, the settle window and the rule against chasing a
+rounded level are written and tested once, and both shells stay thin.
+
+**Two things stand between a spun encoder and Elgato's ten-updates-a-second guideline.** Diffing,
+because `setFeedback` MERGES, so a payload carrying only what moved is both correct and much
+smaller. And a throttle, because diffing alone does not help during a spin: every field genuinely
+changes on every tick. The throttle keeps a trailing send, because a dial that stopped one frame
+short of where the knob was left would be worse than one that lags.
+
+**A press-and-turn must not mute the player.** The gesture delivers `dialDown`, then rotations, then
+`dialUp`, and press-and-turn is the go-faster gesture, so muting on release would mute the player
+every single time somebody used it. `PressWatch` cancels the release when a rotation happened in
+between. Its own file with its own test because it is small, pure, and the kind of thing that is
+silently wrong for weeks.
+
+**A key passed to `setFeedback` that the layout never declared fails silently**: nothing errors and
+nothing draws. So `tests/manifest.test.ts` reads the frame's field names out of `dial.face.ts` and
+checks the committed layout declares each one, rather than comparing against a list written twice
+and left to drift. It was checked by adding a bogus field and watching the test fail.
+
+**The strip's icon is the raw cover**, a raster data URI as the artwork cache already produces it,
+rather than the composed SVG a key draws. The sibling plugin measured that the app's Qt renderer
+draws an embedded raster through `xlink:href` in `setImage` ON A KEY. Nobody has measured it in a
+layout `pixmap`, so nothing here depends on it, and the composite is an upgrade if that measurement
+ever comes back well.
+
 ## Every key holds its own player
 
 **`PlayerKeys` departs from the sibling plugin's `StationKeys`, and this is the largest structural
