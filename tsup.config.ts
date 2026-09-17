@@ -29,4 +29,17 @@ export default defineConfig([
             writeFileSync(`${bin}/package.json`, '{ "type": "module" }\n');
         },
     },
+    // The settings panel's script, which the app runs in its own browser beside `ui/player.html`. A
+    // plain script rather than a module, named as the page names it, and never cleaned: the page and
+    // the rest of `ui/` are committed, and only this file is built.
+    {
+        entry: { player: 'src/inspector/player.inspector.ts' },
+        format: ['iife'],
+        platform: 'browser',
+        target: 'es2022',
+        outDir: 'com.maroonedsoftware.bluos.sdPlugin/ui',
+        outExtension: () => ({ js: '.js' }),
+        sourcemap: false,
+        clean: false,
+    },
 ]);

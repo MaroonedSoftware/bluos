@@ -11,6 +11,7 @@
     "Category": "BluOS",
     "CategoryIcon": "imgs/plugin/category-icon",
     "CodePath": "bin/plugin.js",
+    "PropertyInspectorPath": "ui/player.html",
     "SDKVersion": 3,
     "Software": {
         "MinimumVersion": "7.1"

@@ -26,6 +26,7 @@ interface Manifest {
     Icon: string;
     CategoryIcon: string;
     CodePath: string;
+    PropertyInspectorPath: string;
     Nodejs: { Version: string };
     Actions: Action[];
 }
@@ -79,6 +80,11 @@ describe('the plugin manifest', () => {
     it('runs the bundle the build writes, on a Node the Stream Deck app offers', () => {
         expect(manifest.CodePath).toBe('bin/plugin.js');
         expect(['20', '24']).toContain(manifest.Nodejs.Version);
+    });
+
+    it('has the settings panel it names, loading the script the build writes beside it', () => {
+        const page = readFileSync(join(plugin, manifest.PropertyInspectorPath), 'utf8');
+        expect(page).toContain('<script src="player.js"></script>');
     });
 
     it('puts the volume dial on an encoder and every other action on a key', () => {

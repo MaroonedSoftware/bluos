@@ -122,6 +122,49 @@ race where an answer lands between the abort and the rejection.
 had no push channel. Here every command answers with the state it produced, and the long-poll wakes
 within milliseconds of the change anyway.
 
+## The settings, and the panel
+
+**Which player a key talks to is an ACTION setting, not a global one, and this is the one place the
+sibling plugin's shape is deliberately inverted.** It keeps its settings global because an API key
+acts as the account that issued it and Elgato writes an action's settings in plain text into every
+profile somebody exports. BluOS has no credential at all, so the reason is gone, and the opposite
+need arrives in its place: four dials on a Stream Deck + are naturally four rooms, and a global
+address would make that impossible. Do not "restore consistency" with the sibling here.
+
+**One thing is global, and it is a convenience rather than a source of truth**: `defaultAddress`,
+the last player chosen in any panel, so a freshly dragged key works before anybody opens it. A key
+that appears without an address ADOPTS it by writing it into its own settings, rather than falling
+back quietly at the moment of use. Then a key's settings describe the key truthfully, the panel
+needs no special case for "inherited", and a profile somebody exports carries the player it was
+actually using.
+
+**The panel never sends the settings to the plugin.** It writes them with `setSettings`, the app
+delivers them, and the plugin checks what it was handed, so what the panel shows is about the
+settings the keys are actually using rather than about what the panel believes it typed. The sibling
+plugin reached the same rule for global settings; the only difference here is which message the app
+delivers.
+
+**The check asks `/SyncStatus`, and answers with the player's NAME.** "It connected" is worth very
+little when half the addresses on a home network answer something. Naming the player back is the
+only answer that proves the right box was reached. A player answering `initialized="false"` is
+reported as needing setup rather than as connected.
+
+**The panel is written here, not taken from `sdpi-components`.** Elgato suggests that library, and
+the sibling's reasons hold: the npm package of that name is not its author's, the protocol is six
+messages, and a TypeScript panel shares the address parser and the message types with the plugin
+that answers it. `src/inspector/` is built by tsup into `ui/player.js` beside the committed page.
+
+**A test harness note that is easy to get backwards.** In the Stream Deck app the property inspector
+has its OWN socket to the app, so a `setSettings` from the panel reaches the APP, which then tells
+the plugin. `FakeDeck.panelWrites` models that. Sending `setSettings` down the plugin's own socket
+would be backwards and would quietly test nothing.
+
+**The end-to-end panel test serves a real player on loopback.** The bundle runs in its own process
+and cannot be handed a fake `fetch`, so `tests/fixtures/serve.player.ts` answers real HTTP with the
+bytes a real M10 sent. That proves the same bytes the unit tests parse also survive the bundle, the
+socket and the panel. Loopback is the only network a sandboxed test run has, and it is enough.
+Do not write a test that needs the real player: it would pass on one machine and fail everywhere.
+
 ## The bundle
 
 **One ES module at `com.maroonedsoftware.bluos.sdPlugin/bin/plugin.js`, with `bin/package.json`

@@ -56,6 +56,10 @@ export class FakeDeck {
     private child?: ChildProcess;
     /** Everything the plugin has said, in order, so a test can assert on what it missed. */
     readonly received: FromPlugin[] = [];
+    /** Each key's own settings, as the app stores them against its context. */
+    readonly settings = new Map<string, Record<string, unknown>>();
+    /** The settings every key shares. */
+    globalSettings: Record<string, unknown> = {};
     /** Everything the plugin's process wrote to stderr, noise included. */
     readonly stderr: string[] = [];
     private waiting: { match: (message: FromPlugin) => boolean; resolve: (message: FromPlugin) => void }[] = [];
@@ -132,6 +136,56 @@ export class FakeDeck {
         this.socket.send(JSON.stringify(event));
     }
 
+    /** A key of `action` appears on the deck, carrying `settings`. */
+    appear(context: string, action: string, settings: Record<string, unknown> = {}, controller: 'Keypad' | 'Encoder' = 'Keypad'): void {
+        this.settings.set(context, settings);
+        this.send({
+            event: 'willAppear',
+            action,
+            context,
+            device: DEVICE.id,
+            payload: { controller, coordinates: { column: 0, row: 0 }, isInMultiAction: false, settings },
+        });
+    }
+
+    /** The user selects that key in the Stream Deck app, so its settings panel opens. */
+    panelOpens(context: string, action: string): void {
+        this.send({ event: 'propertyInspectorDidAppear', action, context, device: DEVICE.id });
+    }
+
+    /**
+     * The panel writes a key's settings.
+     *
+     * In the Stream Deck app the property inspector has its OWN socket, so a `setSettings` from the
+     * panel reaches the APP and the app then tells the plugin. Modelling it as a message on the
+     * plugin's socket would be backwards, and would quietly test nothing.
+     */
+    panelWrites(context: string, settings: Record<string, unknown>): void {
+        this.settings.set(context, settings);
+        this.send({
+            event: 'didReceiveSettings',
+            context,
+            device: DEVICE.id,
+            payload: { settings, coordinates: { column: 0, row: 0 }, isInMultiAction: false },
+        });
+    }
+
+    /** The panel writes the settings every key shares. */
+    panelWritesGlobal(settings: Record<string, unknown>): void {
+        this.globalSettings = settings;
+        this.send({ event: 'didReceiveGlobalSettings', payload: { settings } });
+    }
+
+    /** The panel sends the plugin a message. */
+    fromPanel(context: string, action: string, payload: unknown): void {
+        this.send({ event: 'sendToPlugin', action, context, payload });
+    }
+
+    /** What the app would have stored for a key after everything the plugin asked it to. */
+    settingsOf(context: string): Record<string, unknown> {
+        return this.settings.get(context) ?? {};
+    }
+
     /** The next message matching `match`, including ones already received. */
     next(match: (message: FromPlugin) => boolean): Promise<FromPlugin> {
         const already = this.received.find(match);
@@ -160,6 +214,47 @@ export class FakeDeck {
         await new Promise<void>(done => this.server.close(() => done()));
     }
 
+    /**
+     * Plays the app's part in the settings round trip.
+     *
+     * The plugin does not hold settings; it asks the app for them and the app answers, and a write
+     * comes back as `didReceiveSettings` rather than being assumed. Without this the plugin's own
+     * `getSettings()` would never resolve and every test that opens a panel would time out.
+     */
+    private answerSettings(message: FromPlugin): void {
+        const context = typeof message.context === 'string' ? message.context : undefined;
+        switch (message.event) {
+            case 'setSettings':
+                if (context) this.settings.set(context, (message.payload ?? {}) as Record<string, unknown>);
+                if (context)
+                    this.send({
+                        event: 'didReceiveSettings',
+                        context,
+                        device: DEVICE.id,
+                        payload: { settings: this.settingsOf(context), coordinates: { column: 0, row: 0 }, isInMultiAction: false },
+                    });
+                return;
+            case 'getSettings':
+                if (context)
+                    this.send({
+                        event: 'didReceiveSettings',
+                        context,
+                        device: DEVICE.id,
+                        payload: { settings: this.settingsOf(context), coordinates: { column: 0, row: 0 }, isInMultiAction: false },
+                    });
+                return;
+            case 'setGlobalSettings':
+                this.globalSettings = (message.payload ?? {}) as Record<string, unknown>;
+                this.send({ event: 'didReceiveGlobalSettings', payload: { settings: this.globalSettings } });
+                return;
+            case 'getGlobalSettings':
+                this.send({ event: 'didReceiveGlobalSettings', payload: { settings: this.globalSettings } });
+                return;
+            default:
+                return;
+        }
+    }
+
     private take(raw: string): void {
         let message: FromPlugin;
         try {
@@ -168,6 +263,7 @@ export class FakeDeck {
             return;
         }
         this.received.push(message);
+        this.answerSettings(message);
         for (const waiter of [...this.waiting]) {
             if (!waiter.match(message)) continue;
             this.waiting = this.waiting.filter(w => w !== waiter);
