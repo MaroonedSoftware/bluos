@@ -12,7 +12,9 @@ export default tseslint.config(
     {
         rules: {
             '@typescript-eslint/consistent-type-imports': 'error',
-            '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+            // A leading underscore means "deliberately discarded", which covers a rest-destructure
+            // that drops a field as much as it covers an unused argument.
+            '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
         },
     },
     // The generators in tools/ are plain ES modules run by `node`, not part of the bundle.
