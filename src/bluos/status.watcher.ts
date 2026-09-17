@@ -1,4 +1,4 @@
-import { LONG_POLL_DEADLINE_MS, REQUEST_DEADLINE_MS, type BluOsClient } from './client.js';
+import { LONG_POLL_DEADLINE_MS, REQUEST_DEADLINE_MS, type BluOsClient, type CommandAnswer } from './client.js';
 import { classify, type Failure } from './connection.failure.js';
 import type { StatusReading } from './status.reading.js';
 import type { SyncReading } from './sync.reading.js';
@@ -133,15 +133,42 @@ export class StatusWatcher {
     }
 
     /**
-     * Drives the player, and publishes what the command answered.
+     * Drives the player, and folds what the command answered into the reading.
      *
-     * A command's own response carries the state it produced, so there is no follow-up read
-     * schedule: the long-poll wakes within milliseconds of the change anyway. A failure is thrown
-     * to the key that asked, for it to say so, and does not touch the reading, because a refused
-     * Skip says nothing about whether the player can be read.
+     * Every BluOS command answers with the state it produced, so a key flips the moment the player
+     * agrees rather than a round trip later, and there is no follow-up read schedule of the kind
+     * the sibling plugin needs: the long-poll wakes within milliseconds of the change anyway.
+     *
+     * A failure is thrown to the key that asked, for it to say so, and does not touch the reading.
+     * A refused Skip says nothing about whether the player can be read.
      */
-    async command<T>(verb: (client: BluOsClient, signal: AbortSignal) => Promise<T>): Promise<T> {
-        return await verb(this.client, AbortSignal.timeout(REQUEST_DEADLINE_MS));
+    async command(verb: (client: BluOsClient, signal: AbortSignal) => Promise<CommandAnswer>): Promise<CommandAnswer> {
+        const answer = await verb(this.client, AbortSignal.timeout(REQUEST_DEADLINE_MS));
+        this.note(answer);
+        return answer;
+    }
+
+    /**
+     * Folds a command's answer into the current reading and publishes it.
+     *
+     * Only what the answer actually carried: a transport command names a state and says nothing
+     * about the volume, and a volume command the reverse. It does nothing at all before the first
+     * reading has arrived, because there is no reading to fold into and inventing one would have a
+     * key drawing a track it has never been told about.
+     */
+    private note(answer: CommandAnswer): void {
+        const status = this.reading.status;
+        if (status === undefined) return;
+        if (answer.state === undefined && answer.volume === undefined && answer.muted === undefined) return;
+        this.publish({
+            ...this.reading,
+            status: {
+                ...status,
+                ...(answer.state === undefined ? {} : { state: answer.state, playing: answer.state === 'play' || answer.state === 'stream' }),
+                ...(answer.volume === undefined ? {} : { volume: answer.volume }),
+                ...(answer.muted === undefined ? {} : { muted: answer.muted }),
+            },
+        });
     }
 
     /** Stops everything and forgets the loop. The reading is kept, because it was true when read. */

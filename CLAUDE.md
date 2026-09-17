@@ -122,6 +122,39 @@ race where an answer lands between the abort and the rejection.
 had no push channel. Here every command answers with the state it produced, and the long-poll wakes
 within milliseconds of the change anyway.
 
+## What the keys do
+
+**Absolute commands only, everywhere.** `/Pause?toggle=1` exists and is never used. The state is
+known from the reading, so a key issues the verb it means, and a double press or a retry can never
+invert what it asked for. The same rule settles the volume, which is written as a level and never as
+a relative step, and the measured evidence for that is in the section above: the level round-trips
+exactly where the dB drifts.
+
+**A command's own answer flips the key.** Every BluOS command answers with the state it produced, so
+`StatusWatcher.command` folds that into the reading and publishes it. The key moves the moment the
+player agrees rather than a round trip later, and there is no follow-up read schedule of the kind
+the sibling plugin needs. It folds in only what the answer carried, and does nothing at all before
+the first reading has arrived, because inventing one would have a key drawing a track it has never
+been told about.
+
+**Next and Previous refuse a press while the player is on a stream.** The specification says a
+`streamUrl` means the play queue is not the source and that "next and previous are not available".
+This is the ordinary case rather than an edge one: the player this was built against was streaming
+every time it was looked at. Where a screen would grey the control out, a Stream Deck key cannot be
+disabled, so it says "Stream" on its face, takes the press, and declines it. Doing nothing at all
+would read as the plugin being broken.
+
+**A stale reading refuses a press too.** A reading from before the player stopped answering says
+nothing about what a press would do now.
+
+**There is no arming.** The sibling plugin's Stop arms on the first press and fires on the second,
+because it guards a live radio station going off air. Nothing here is that: pausing a speaker is
+undone by pressing again.
+
+**Play from a stopped player is reported rather than hidden.** The specification: "/Play can be used
+to resume when in a pause state but not when in stop state." A stopped player has nothing loaded, so
+the log says to choose something in the BluOS app first.
+
 ## Every key holds its own player
 
 **`PlayerKeys` departs from the sibling plugin's `StationKeys`, and this is the largest structural
@@ -184,11 +217,24 @@ has its OWN socket to the app, so a `setSettings` from the panel reaches the APP
 the plugin. `FakeDeck.panelWrites` models that. Sending `setSettings` down the plugin's own socket
 would be backwards and would quietly test nothing.
 
-**`FakeDeck.next` searches what has already arrived, which is usually right and occasionally a
-trap.** Waiting for a frame a key drew once at startup will match that one and prove nothing: a Now
-Playing key draws "No player" the instant it appears, before it has asked anything. Pass `from`,
-taken from `deck.mark` before the thing under test, to wait for a genuinely new message. A test that
-passed and then failed on a rerun is what found this.
+**Waiting for "the first frame" is almost always the wrong wait, and it has now cost two
+debugging sessions.** A key draws the instant it appears, from a reading it does not have yet, so
+the first `setTitle` is "No player" and the first `setState` is whatever an empty reading implies.
+Waiting for either matches that frame and proves nothing; in the transport test it let a press land
+ten milliseconds after `willAppear`, before the player had answered anything, and the refusal that
+followed was correct behaviour being reported as a bug. Wait for the frame that can only come from a
+reading: a specific state, or a title the player supplied.
+
+`FakeDeck.next` searches what has already arrived, which is usually right and part of the same trap.
+Pass `from`, taken from `deck.mark` before the thing under test, to wait for a genuinely new message.
+
+**The bundle tests need generous timeouts, and that is not laziness.** Two files launch the built
+bundle in a child process and wait for it to register over a socket, and vitest runs files in
+parallel, so a run can have several Node processes starting at once. At vitest's default five
+seconds the suite failed about two runs in five, always on whichever bundle test started first.
+`testTimeout` is 20 seconds and `FakeDeck`'s own is 15, deliberately shorter, so the failure comes
+from the harness with a list of what the plugin actually said rather than as a bare "test timed
+out".
 
 **The end-to-end panel test serves a real player on loopback.** The bundle runs in its own process
 and cannot be handed a fake `fetch`, so `tests/fixtures/serve.player.ts` answers real HTTP with the

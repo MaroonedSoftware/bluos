@@ -37,7 +37,13 @@ export interface FromPlugin {
 export interface FakeDeckOptions {
     /** The plugin's version, as the app would report it. */
     version?: string;
-    /** How long to wait for a message before giving up. */
+    /**
+     * How long to wait for a message before giving up.
+     *
+     * Long, because this waits on a Node process starting while the rest of the suite is running
+     * in parallel. Shorter than vitest's own timeout on purpose, so that the failure comes from
+     * here with the list of what the plugin actually said rather than as a bare "test timed out".
+     */
     timeoutMs?: number;
 }
 
@@ -76,7 +82,7 @@ export class FakeDeck {
 
         const server = new WebSocketServer({ host: '127.0.0.1', port: 0 });
         await new Promise<void>(done => server.once('listening', done));
-        const deck = new FakeDeck(server, { version: '0.1.0.0', timeoutMs: 5_000, ...options });
+        const deck = new FakeDeck(server, { version: '0.1.0.0', timeoutMs: 15_000, ...options });
 
         server.on('connection', socket => {
             deck.socket = socket;

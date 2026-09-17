@@ -3,6 +3,10 @@ import streamDeck from '@elgato/streamdeck';
 import { NowPlayingAction } from './actions/now.playing.action.js';
 import { NowPlayingKeys } from './actions/now.playing.js';
 import type { KeysWorld } from './actions/player.keys.js';
+import { NextAction, PreviousAction } from './actions/skip.action.js';
+import { NextKeys, PreviousKeys } from './actions/skip.keys.js';
+import { TransportAction } from './actions/transport.action.js';
+import { TransportKeys } from './actions/transport.keys.js';
 import { probePlayer } from './bluos/probe.js';
 import { WatcherPool } from './bluos/watcher.pool.js';
 import { isToPlugin, type ToInspector } from './inspector/inspector.messages.js';
@@ -30,10 +34,17 @@ const world: KeysWorld = {
 };
 
 const nowPlaying = new NowPlayingKeys(world);
+const transport = new TransportKeys(world);
+const next = new NextKeys(world);
+const previous = new PreviousKeys(world);
+
 streamDeck.actions.registerAction(new NowPlayingAction(nowPlaying));
+streamDeck.actions.registerAction(new TransportAction(transport));
+streamDeck.actions.registerAction(new NextAction(next));
+streamDeck.actions.registerAction(new PreviousAction(previous));
 
 /** Every set of keys, for the events that are about all of them rather than about one key. */
-const everyKey = [nowPlaying];
+const everyKey = [nowPlaying, transport, next, previous];
 
 /**
  * Tells the open settings panel what the plugin makes of the address it was handed.
