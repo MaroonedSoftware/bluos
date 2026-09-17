@@ -21,10 +21,24 @@ interface ActionInfo {
     payload?: { settings?: PanelSettings };
 }
 
-type PanelSettings = { address?: string; showTitle?: boolean; showProgress?: boolean };
+type PanelSettings = {
+    address?: string;
+    showTitle?: boolean;
+    showProgress?: boolean;
+    direction?: 'up' | 'down' | 'mute';
+    step?: number;
+    showLevel?: boolean;
+};
 
-/** The one action with anything to show beyond the player. */
+/**
+ * The actions with anything to set beyond the player.
+ *
+ * The Stream Deck app opens ONE settings panel for the whole plugin, so the page carries every
+ * group and shows the one that belongs to whichever action it was opened on.
+ */
 const NOW_PLAYING = 'com.maroonedsoftware.bluos.now-playing';
+const VOLUME = 'com.maroonedsoftware.bluos.volume';
+const DEFAULT_STEP = 5;
 
 const field = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -39,10 +53,21 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     const display = field<HTMLDivElement>('display');
     const showTitle = field<HTMLInputElement>('showTitle');
     const showProgress = field<HTMLInputElement>('showProgress');
+    const volume = field<HTMLDivElement>('volume');
+    const direction = field<HTMLSelectElement>('direction');
+    const step = field<HTMLInputElement>('step');
+    const stepRow = field<HTMLDivElement>('stepRow');
+    const showLevel = field<HTMLInputElement>('showLevel');
 
     // The display choices belong to the Now Playing key and to nothing else, so the panel only
     // offers them where they do something. The app opens ONE panel for every action in this plugin.
     display.hidden = parsed.action !== NOW_PLAYING;
+    volume.hidden = parsed.action !== VOLUME;
+
+    /** A mute key has nothing to step by, so the field goes rather than sitting there meaning nothing. */
+    const showStep = (): void => {
+        stepRow.hidden = direction.value === 'mute';
+    };
 
     /** Whether the plugin has been asked something the panel is still waiting on an answer to. */
     let asking = false;
@@ -66,7 +91,10 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     const save = (): void => {
         const typed = address.value.trim();
         const shown = display.hidden ? {} : { showTitle: showTitle.checked, showProgress: showProgress.checked };
-        send(messages.setSettings({ ...settingsFrom(typed), ...shown }));
+        const knob = volume.hidden
+            ? {}
+            : { direction: direction.value as 'up' | 'down' | 'mute', step: Number(step.value) || DEFAULT_STEP, showLevel: showLevel.checked };
+        send(messages.setSettings({ ...settingsFrom(typed), ...shown, ...knob }));
         if (typed !== '') send(messages.setGlobalSettings({ defaultAddress: typed }));
     };
 
@@ -90,6 +118,10 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         address.value = parsed.payload?.settings?.address ?? '';
         showTitle.checked = parsed.payload?.settings?.showTitle !== false;
         showProgress.checked = parsed.payload?.settings?.showProgress !== false;
+        direction.value = parsed.payload?.settings?.direction ?? 'up';
+        step.value = String(parsed.payload?.settings?.step ?? DEFAULT_STEP);
+        showLevel.checked = parsed.payload?.settings?.showLevel !== false;
+        showStep();
         // A key that has never been configured may still have adopted the default by the time the
         // panel opens, so ask the app rather than trusting what came with the panel.
         send(messages.getSettings());
@@ -104,6 +136,10 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
             // Absent means shown, which is the same rule the plugin reads them by.
             showTitle.checked = settings?.showTitle !== false;
             showProgress.checked = settings?.showProgress !== false;
+            direction.value = settings?.direction ?? 'up';
+            step.value = String(settings?.step ?? DEFAULT_STEP);
+            showLevel.checked = settings?.showLevel !== false;
+            showStep();
             return;
         }
         if (message.event === 'sendToPropertyInspector' && isToInspector(message.payload)) {
@@ -130,5 +166,10 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         check();
     });
     // Elgato's rule for a checkbox is that it saves on every tick, with no Save button anywhere.
-    for (const box of [showTitle, showProgress]) box.addEventListener('change', save);
+    for (const box of [showTitle, showProgress, showLevel]) box.addEventListener('change', save);
+    direction.addEventListener('change', () => {
+        showStep();
+        save();
+    });
+    step.addEventListener('change', save);
 };
