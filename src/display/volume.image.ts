@@ -23,12 +23,16 @@ export function volumeSvg(direction: VolumeDirection, options: { muted: boolean;
               ? waves(colour) + `<path d="M104 26h30M119 11v30" stroke="${colour}" stroke-width="9" stroke-linecap="round" fill="none"/>`
               : waves(colour) + `<path d="M104 26h30" stroke="${colour}" stroke-width="9" stroke-linecap="round" fill="none"/>`;
 
+    // Drawn at three-quarters and sat high, because the Stream Deck app writes the title along the
+    // BOTTOM of the key over whatever the image put there. A glyph filling the face edge to edge
+    // looks right on its own and has the level struck through it the moment there is one.
     return (
         `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">` +
         `<rect width="${SIZE}" height="${SIZE}" fill="#0c0e0d"/>` +
+        `<g transform="translate(17 2) scale(0.72)">` +
         `<path d="${SPEAKER}" fill="${colour}"/>` +
         glyph +
-        `</svg>`
+        `</g></svg>`
     );
 }
 

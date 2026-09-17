@@ -19,3 +19,6 @@ logs/
 # Responses captured from a real player by tools/capture.mjs, which are a local aid rather
 # than something every checkout needs. Promote one into tests/fixtures/bluos.xml.ts to keep it.
 tests/fixtures/captured/
+
+# The packed installer, built by `pnpm installer` and published by CI.
+artifacts/

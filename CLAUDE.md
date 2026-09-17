@@ -365,9 +365,15 @@ pnpm deck:link    # symlink the plugin folder into the Stream Deck app
 pnpm deck:restart # reload the running plugin after a build
 ```
 
-**`streamdeck validate` fetches the manifest's `URL` and `SupportURL`.** Until this repository exists
-at `github.com/robert-dean/bluos` it fails with "URL must be resolvable" on a manifest that is
-otherwise fine, which is why it is not part of `pnpm test`.
+**`streamdeck validate` fetches the manifest's `URL` and `SupportURL`**, which is why it is not part
+of `pnpm test`. Two different things come of that, and they were conflated once already:
+
+- **In a sandboxed session it ERRORS** with "URL must be resolvable" on a manifest that is perfectly
+  fine, because the validator cannot reach the network at all. A URL that `curl` fetches with a 200
+  fails this way too, which is what gives the game away.
+- **With the network it WARNS**, "URL should return success (received 404)", because
+  `github.com/robert-dean/bluos` does not exist yet. A warning, so `validate` and `installer` both
+  succeed, and the warning goes when the repository is pushed.
 
 **The plugin must be launched from inside the `.sdPlugin` folder.** The SDK reads `manifest.json`
 off the current working directory the first time an action is registered. Launched from anywhere

@@ -38,6 +38,21 @@ After every build, reload the running plugin, or the settings panel and the plug
 pnpm deck:restart
 ```
 
+## Releasing it
+
+A change worth a release gets a changeset:
+
+```bash
+pnpm changeset
+```
+
+Merging the version pull request that opens is the whole of cutting a release. CI tags it, builds
+the installer and publishes it on a GitHub release. Edit the package's version, never the manifest's:
+`pnpm release:version` mirrors one into the other and CI fails when they disagree.
+
+Uploading to the Elgato Marketplace is the one step left by hand. `marketplace/listing.md` holds the
+text and the pictures it takes.
+
 ## Licence
 
 MIT.

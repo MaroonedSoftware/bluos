@@ -1,0 +1,81 @@
+name: Release
+
+on:
+    push:
+        branches: [main]
+    workflow_dispatch:
+        inputs:
+            draft:
+                description: Publish the release as a draft
+                type: boolean
+                default: false
+
+permissions:
+    contents: write
+
+jobs:
+    # A release cuts itself: on the push where the version has moved to one that has no tag yet,
+    # which is the merge of the version pull request changesets opened. A typo moves no version and
+    # releases nothing.
+    release:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: pnpm
+
+            - name: Is this version already released?
+              id: version
+              run: |
+                  set -euo pipefail
+                  version=$(node -p "require('./package.json').version")
+                  echo "version=$version" >> "$GITHUB_OUTPUT"
+                  if gh release view "v$version" >/dev/null 2>&1; then
+                      echo "needed=false" >> "$GITHUB_OUTPUT"
+                      echo "v$version is already released."
+                  else
+                      echo "needed=true" >> "$GITHUB_OUTPUT"
+                  fi
+              env:
+                  GH_TOKEN: ${{ github.token }}
+
+            - name: Install dependencies
+              if: steps.version.outputs.needed == 'true'
+              run: pnpm install --frozen-lockfile
+
+            - name: Build and test
+              if: steps.version.outputs.needed == 'true'
+              run: pnpm test
+
+            - name: Build the installer
+              if: steps.version.outputs.needed == 'true'
+              run: pnpm installer
+
+            # The tag is made first and the release on it with --verify-tag, so a release that fails
+            # leaves no tag behind and the next push retries cleanly.
+            - name: Tag and release
+              if: steps.version.outputs.needed == 'true'
+              run: |
+                  set -euo pipefail
+                  version="${{ steps.version.outputs.version }}"
+                  git tag "v$version"
+                  git push origin "v$version"
+                  gh release create "v$version" \
+                      --verify-tag \
+                      --title "v$version" \
+                      --generate-notes \
+                      ${{ inputs.draft && '--draft' || '' }} \
+                      artifacts/*.streamDeckPlugin \
+                      || { git push --delete origin "v$version"; exit 1; }
+              env:
+                  GH_TOKEN: ${{ github.token }}

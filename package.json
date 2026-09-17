@@ -16,9 +16,13 @@
         "deck:link": "streamdeck link com.maroonedsoftware.bluos.sdPlugin",
         "deck:restart": "streamdeck restart com.maroonedsoftware.bluos",
         "deck:dev": "streamdeck dev",
-        "preview": "node tools/preview/run.mjs"
+        "preview": "node tools/preview/run.mjs",
+        "changeset": "changeset",
+        "release:version": "changeset version && node tools/version.mjs",
+        "release:check": "node tools/version.mjs --check"
     },
     "devDependencies": {
+        "@changesets/cli": "^2.27.0",
         "@elgato/cli": "^1.9.0",
         "@elgato/streamdeck": "^2.1.2",
         "@eslint/js": "^9.0.0",
