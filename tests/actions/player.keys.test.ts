@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NowPlayingKeys, wordsFor } from '../../src/actions/now.playing.js';
+import { ArtworkCache } from '../../src/display/artwork.js';
 import type { KeysWorld } from '../../src/actions/player.keys.js';
 import { WatcherPool } from '../../src/bluos/watcher.pool.js';
 import type { GlobalSettings } from '../../src/player.settings.js';
@@ -39,7 +40,10 @@ function rig(fetch: typeof globalThis.fetch, global: GlobalSettings = {}): Rig {
     const state = { ...global };
     const logs: string[] = [];
     const world: KeysWorld = { pool, global: () => state, log: sentence => logs.push(sentence) };
-    return { keys: new NowPlayingKeys(world), pool, global: state, logs };
+    // No artwork: these tests are about which player a key follows, and a cover would only add a
+    // request. The key falls back to drawing a record, which is what it does with no cover anyway.
+    const artwork = new ArtworkCache({ userAgent: 'test', fetch: (async () => new Response('', { status: 404 })) as typeof globalThis.fetch });
+    return { keys: new NowPlayingKeys(world, artwork), pool, global: state, logs };
 }
 
 describe('every key has its own player', () => {

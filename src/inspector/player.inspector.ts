@@ -18,8 +18,13 @@ declare global {
 
 interface ActionInfo {
     action: string;
-    payload?: { settings?: { address?: string } };
+    payload?: { settings?: PanelSettings };
 }
+
+type PanelSettings = { address?: string; showTitle?: boolean; showProgress?: boolean };
+
+/** The one action with anything to show beyond the player. */
+const NOW_PLAYING = 'com.maroonedsoftware.bluos.now-playing';
 
 const field = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -31,6 +36,13 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     const address = field<HTMLInputElement>('address');
     const status = field<HTMLParagraphElement>('status');
     const test = field<HTMLButtonElement>('test');
+    const display = field<HTMLDivElement>('display');
+    const showTitle = field<HTMLInputElement>('showTitle');
+    const showProgress = field<HTMLInputElement>('showProgress');
+
+    // The display choices belong to the Now Playing key and to nothing else, so the panel only
+    // offers them where they do something. The app opens ONE panel for every action in this plugin.
+    display.hidden = parsed.action !== NOW_PLAYING;
 
     /** Whether the plugin has been asked something the panel is still waiting on an answer to. */
     let asking = false;
@@ -53,7 +65,8 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
      */
     const save = (): void => {
         const typed = address.value.trim();
-        send(messages.setSettings(settingsFrom(typed)));
+        const shown = display.hidden ? {} : { showTitle: showTitle.checked, showProgress: showProgress.checked };
+        send(messages.setSettings({ ...settingsFrom(typed), ...shown }));
         if (typed !== '') send(messages.setGlobalSettings({ defaultAddress: typed }));
     };
 
@@ -75,6 +88,8 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     socket.addEventListener('open', () => {
         send(messages.register(registerEvent));
         address.value = parsed.payload?.settings?.address ?? '';
+        showTitle.checked = parsed.payload?.settings?.showTitle !== false;
+        showProgress.checked = parsed.payload?.settings?.showProgress !== false;
         // A key that has never been configured may still have adopted the default by the time the
         // panel opens, so ask the app rather than trusting what came with the panel.
         send(messages.getSettings());
@@ -84,8 +99,11 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     socket.addEventListener('message', event => {
         const message = JSON.parse(String(event.data)) as { event?: string; payload?: unknown };
         if (message.event === 'didReceiveSettings') {
-            const settings = (message.payload as { settings?: { address?: string } } | undefined)?.settings;
+            const settings = (message.payload as { settings?: PanelSettings } | undefined)?.settings;
             if (settings?.address !== undefined && document.activeElement !== address) address.value = settings.address;
+            // Absent means shown, which is the same rule the plugin reads them by.
+            showTitle.checked = settings?.showTitle !== false;
+            showProgress.checked = settings?.showProgress !== false;
             return;
         }
         if (message.event === 'sendToPropertyInspector' && isToInspector(message.payload)) {
@@ -111,4 +129,6 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         save();
         check();
     });
+    // Elgato's rule for a checkbox is that it saves on every tick, with no Save button anywhere.
+    for (const box of [showTitle, showProgress]) box.addEventListener('change', save);
 };

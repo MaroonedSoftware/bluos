@@ -84,6 +84,22 @@
                 margin: 10px 0 0 100px;
                 color: var(--quiet);
             }
+            .group {
+                margin-top: 14px;
+                padding-top: 12px;
+                border-top: 1px solid var(--line);
+            }
+            .checks {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .check {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                color: var(--ink);
+            }
         </style>
     </head>
     <body>
@@ -94,6 +110,15 @@
         </div>
         <p id="status" class="status"></p>
         <p class="hint">The player’s IP address, or its name ending in .local. Add <code>:port</code> only if it is not on 11000.</p>
+        <div id="display" class="group" hidden>
+            <div class="row">
+                <label>Show</label>
+                <div class="checks">
+                    <label class="check"><input id="showTitle" type="checkbox" checked /> Title and artist</label>
+                    <label class="check"><input id="showProgress" type="checkbox" checked /> Progress bar</label>
+                </div>
+            </div>
+        </div>
         <script src="player.js"></script>
     </body>
 </html>

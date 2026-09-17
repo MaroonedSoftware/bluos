@@ -11,3 +11,6 @@ pnpm-lock.yaml
 # The editor's and Claude Code's own settings, which are not this project's to reformat.
 .claude/
 .vscode/
+
+# Previews written by tools/preview, which are for looking at rather than for keeping.
+artifacts/

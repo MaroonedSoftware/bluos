@@ -1,3 +1,4 @@
+import type { NowPlayingSettings } from '../actions/now.playing.options.js';
 import type { GlobalSettings, PlayerSettings } from '../player.settings.js';
 import type { ToPlugin } from './inspector.messages.js';
 
@@ -15,8 +16,8 @@ export function inspectorMessages(uuid: string, action: string) {
         register: (event: string) => ({ event, uuid }),
         getSettings: () => ({ event: 'getSettings', context: uuid }),
         getGlobalSettings: () => ({ event: 'getGlobalSettings', context: uuid }),
-        /** This key's own player. */
-        setSettings: (settings: PlayerSettings) => ({ event: 'setSettings', context: uuid, payload: settings }),
+        /** This key's own player, and whatever else this key alone decides. */
+        setSettings: (settings: PlayerSettings & NowPlayingSettings) => ({ event: 'setSettings', context: uuid, payload: settings }),
         /** The player the next freshly dragged key will start on. */
         setGlobalSettings: (settings: GlobalSettings) => ({ event: 'setGlobalSettings', context: uuid, payload: settings }),
         testConnection: () => ({ event: 'sendToPlugin', action, context: uuid, payload: { event: 'testConnection' } satisfies ToPlugin }),

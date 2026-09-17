@@ -8,6 +8,7 @@ import { NextKeys, PreviousKeys } from './actions/skip.keys.js';
 import { TransportAction } from './actions/transport.action.js';
 import { TransportKeys } from './actions/transport.keys.js';
 import { probePlayer } from './bluos/probe.js';
+import { ArtworkCache } from './display/artwork.js';
 import { WatcherPool } from './bluos/watcher.pool.js';
 import { isToPlugin, type ToInspector } from './inspector/inspector.messages.js';
 import { addressFor, describeSettings, type GlobalSettings, type PlayerSettings } from './player.settings.js';
@@ -33,7 +34,7 @@ const world: KeysWorld = {
     log: sentence => logger.info(sentence),
 };
 
-const nowPlaying = new NowPlayingKeys(world);
+const nowPlaying = new NowPlayingKeys(world, new ArtworkCache({ userAgent }));
 const transport = new TransportKeys(world);
 const next = new NextKeys(world);
 const previous = new PreviousKeys(world);
