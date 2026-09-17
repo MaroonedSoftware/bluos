@@ -2,7 +2,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 /** The Node globals the plain-JavaScript tools use. TypeScript gets these from @types/node instead. */
-const nodeGlobals = { Buffer: 'readonly', console: 'readonly', process: 'readonly', URL: 'readonly', __dirname: 'readonly' };
+const nodeGlobals = { AbortSignal: 'readonly', Buffer: 'readonly', URL: 'readonly', console: 'readonly', fetch: 'readonly', process: 'readonly' };
 
 export default tseslint.config(
     // The built bundle, the built panel script and the packed installer are outputs, not source.

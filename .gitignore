@@ -15,3 +15,7 @@ logs/
 
 # A stray store from an install that was interrupted; the real one is global.
 .pnpm-store/
+
+# Responses captured from a real player by tools/capture.mjs, which are a local aid rather
+# than something every checkout needs. Promote one into tests/fixtures/bluos.xml.ts to keep it.
+tests/fixtures/captured/

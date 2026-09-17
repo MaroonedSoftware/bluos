@@ -151,5 +151,16 @@ asserting on raw stderr would fail on such a machine and pass in CI, which is th
 Nothing else is hidden.
 
 **Nothing has been read off a real player yet.** Every claim about the API above comes from the
-specification. The open measurements are in the plan, and the first of them is whether
-`/Status?timeout=60` honours 60 or clamps to 100.
+specification, and everything in `tests/fixtures/bluos.xml.ts` beyond the two transcribed
+specification examples was written from field descriptions rather than captured.
+
+`node tools/capture.mjs <address>` asks a real player the questions the design rests on and prints
+what it finds: whether a requested long-poll `timeout` is honoured or clamped to 100, what an etag
+actually looks like and whether it needs encoding, whether `twoline_title1` is present on the
+services in use, and what content type the player serves its own artwork with. It is read-only, so
+it is safe to run while somebody is listening. `--write` also saves the responses under
+`tests/fixtures/captured/`, which is git-ignored; promote one into `bluos.xml.ts` to keep it.
+
+The two questions it cannot answer without writing to the player, and which still need doing by
+hand in an empty room: whether `/Volume?level=N` reports back exactly N or clamps it to the
+configured dB range, and whether `/Status` bumps its etag promptly when the volume moves.
