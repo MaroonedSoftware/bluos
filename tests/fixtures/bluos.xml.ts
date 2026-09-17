@@ -5,8 +5,12 @@
  * examples, down to the raw ampersand in the image path, which is worth keeping: the specification
  * prints `&songid=` unescaped, so a real firmware may well send it and a parser has to survive it.
  *
- * The rest are constructed from the field descriptions. They should be REPLACED by captures from a
- * real player as soon as there is one to capture from; `tools/capture.fixtures.mjs` does that.
+ * `REAL_STREAM_STATUS` and `REAL_SYNC_STATUS` at the bottom came off an actual player.
+ *
+ * The rest are constructed from the field descriptions, and cover shapes the one player to hand
+ * does not currently produce: a queue-backed track with a length, a muted player, a fixed output,
+ * and a group. Capture those too when there is a player doing them; `tools/capture.mjs --write`
+ * saves what it reads.
  */
 
 /** Section 2.1's example: paused, a Deezer track, with a raw `&` in the artwork path. */
@@ -141,3 +145,37 @@ export const UNINITIALISED_SYNC = `<SyncStatus name="" brand="NAD" model="C658" 
 export const FOLLOWER_SYNC = `<SyncStatus name="Kitchen" brand="Bluesound" model="N125" modelName="NODE" etag="7" initialized="true" volume="18" mute="0" group="Living Room + 1" id="192.168.1.59:11000" mac="DC:B4:D9:31:05:FC">
 <master port="11000">192.168.1.58</master>
 </SyncStatus>`;
+
+/**
+ * CAPTURED FROM A REAL PLAYER: an NAD M10 V2 named "Office", BluOS 4.16.22, on 2026-09-17, playing
+ * an internet radio stream. Byte for byte as the player sent it, which is the point of it.
+ *
+ * It exercises several things the constructed fixtures above do not, and each one is a small
+ * surprise worth keeping:
+ *
+ * - The whole document is on one line with an XML declaration in front of it.
+ * - `<sleep></sleep>` is an empty PAIR, not the self-closing `<sleep/>` the specification prints.
+ * - It carries fields the specification does not document at all (`currentImage`, `serviceName`,
+ *   `serviceType`), which is exactly the case the specification tells clients to ignore.
+ * - There is no `title3` and no `totlen`, and `canSeek` is 0.
+ * - `twoline_title1` IS present, so the two-line titles are the ordinary path rather than a
+ *   fallback, and following the specification instead of copying pyblu was not academic.
+ * - `secs` is 9696, which is time on the stream rather than a position in a track. With no
+ *   `totlen` beside it, a playhead that guessed would draw a meaningless bar.
+ */
+export const REAL_STREAM_STATUS = `<?xml version="1.0" encoding="UTF-8"?>
+<status etag="c0a12c986682919f1ac2413e2972bb3c"><canMovePlayback>true</canMovePlayback><canSeek>0</canSeek><currentImage>https://radio.deanhome.app/api/art/ef20a0c0-3957-486c-92d3-7a4f56fe8dad/cover.jpg</currentImage><cursor>0</cursor><db>-56.7</db><image>https://radio.deanhome.app/api/art/ef20a0c0-3957-486c-92d3-7a4f56fe8dad/cover.jpg</image><indexing>0</indexing><mid>0</mid><mode>1</mode><mute>0</mute><pid>2</pid><prid>0</prid><quality>0</quality><repeat>0</repeat><secs>9696</secs><service>TuneIn</service><serviceIcon>/Sources/images/TuneInIcon.png</serviceIcon><serviceName>TuneIn</serviceName><serviceType>RadioService</serviceType><shuffle>0</shuffle><sid>5</sid><sleep></sleep><song>0</song><state>stream</state><streamFormat>MP3</streamFormat><streamUrl>TuneIn:https://radio.deanhome.app/live.mp3</streamUrl><syncStat>203</syncStat><title1>Deadair</title1><title2>Led Zeppelin - When the Levee Breaks - Remaster</title2><twoline_title1>Deadair</twoline_title1><twoline_title2>Led Zeppelin - When the Levee Breaks - Remaster</twoline_title2><volume>19</volume></status>`;
+
+/**
+ * The same player's `/SyncStatus`, captured at the same moment.
+ *
+ * Note `syncStat="203"` here and `<syncStat>203</syncStat>` in the status above: the linkage the
+ * specification describes, which is what lets one long-poll cover both resources, holds in practice.
+ *
+ * It also carries nested children (`<zoneOptions>` with `<option>` inside, `<bluetoothOutput>`)
+ * where the specification's example has only `<master>` and `<slave>`, and attributes found nowhere
+ * in the specification (`class`, `hasSubwoofer`, `version`). An ungrouped player has no `group`
+ * attribute and no `mute` attribute at all.
+ */
+export const REAL_SYNC_STATUS = `<?xml version="1.0" encoding="UTF-8"?>
+<SyncStatus etag="203" syncStat="203" version="4.16.22" id="192.168.1.234:11000" db="-56.7" volume="19" name="Office" model="M10v2" modelName="M10 V2" class="streamer-amplifier" icon="/images/players/M10_sub.png" brand="NAD" schemaVersion="34" initialized="true" mac="90:56:82:00:BC:99" hasSubwoofer="true"><zoneOptions><option canHaveCentre="true" zoneMaster="true">front</option><option zoneMaster="true">side</option></zoneOptions><bluetoothOutput></bluetoothOutput></SyncStatus>`;

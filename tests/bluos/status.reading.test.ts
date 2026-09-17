@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { readStatus } from '../../src/bluos/status.reading.js';
-import { AWKWARD_TEXT, FIXED_VOLUME, MUTED, PLAYING_TWOLINE, RADIO, SPEC_STATUS, STOPPED } from '../fixtures/bluos.xml.js';
+import { AWKWARD_TEXT, FIXED_VOLUME, MUTED, PLAYING_TWOLINE, RADIO, REAL_STREAM_STATUS, SPEC_STATUS, STOPPED } from '../fixtures/bluos.xml.js';
 
 describe('readStatus', () => {
     it('reads the specification’s own example', () => {
@@ -87,6 +87,39 @@ describe('readStatus', () => {
         const status = readStatus(AWKWARD_TEXT);
         expect(status?.firstLine).toBe('Simon & Garfunkel');
         expect(status?.secondLine).toBe('Parsley, Sage </title1> Rosemary & Thyme');
+    });
+
+    // Byte for byte off an NAD M10 V2 on BluOS 4.16.22. Everything above is either the
+    // specification's own example or written from its field descriptions; this is a real player.
+    describe('a real player, streaming', () => {
+        const status = readStatus(REAL_STREAM_STATUS);
+
+        it('reads the two-line titles the player actually sent', () => {
+            expect(status?.firstLine).toBe('Deadair');
+            expect(status?.secondLine).toBe('Led Zeppelin - When the Levee Breaks - Remaster');
+        });
+
+        it('knows a stream is playing, has no length, and cannot be skipped', () => {
+            expect(status).toMatchObject({ state: 'stream', playing: true, queued: false, canSeek: false, secs: 9696 });
+            expect(status?.totlen).toBeUndefined();
+        });
+
+        it('reads the level and the artwork the player is serving', () => {
+            expect(status?.volume).toBe(19);
+            expect(status?.muted).toBe(false);
+            expect(status?.image).toBe('https://radio.deanhome.app/api/art/ef20a0c0-3957-486c-92d3-7a4f56fe8dad/cover.jpg');
+        });
+
+        // The specification prints `<sleep/>`; this player sends `<sleep></sleep>`. Both mean the
+        // same nothing, and a reading that told them apart would be inventing a distinction.
+        it('treats the player’s empty elements as absent', () => {
+            expect(readStatus(REAL_STREAM_STATUS.replace('<sleep></sleep>', '<sleep/>'))).toEqual(status);
+        });
+
+        // The linkage that lets one long-poll cover both resources.
+        it('carries the syncStat that matches the player’s SyncStatus etag', () => {
+            expect(status?.syncStat).toBe('203');
+        });
     });
 
     it('refuses a body that is not a Status response', () => {

@@ -222,16 +222,29 @@ whole session is still the case the cover cache's title-discriminated key exists
 
 `/SyncStatus` answers `application/xml` in 20ms, and `/Status` in 3ms.
 
-**Still to measure, because they write to the player.** Both want an empty room:
+**`/Volume?level=N` comes back as exactly N.** Asking for 19 answered
+`<volume db="-56.8" offsetDb="0" mute="0" etag="..." source="">19</volume>`. Nothing is clamped at
+this player's configured range, so a write can be treated as confirmed rather than chased. The guard
+against chasing a clamped value stays anyway, because the range IS configurable and a player set up
+differently could round; it costs nothing and the failure it prevents is an infinite write loop
+against somebody's stereo.
 
-```bash
-curl -s 'http://192.168.1.234:11000/Volume?level=19'   # does it answer with exactly 19?
-curl -s 'http://192.168.1.234:11000/Status' | grep -o 'etag="[^"]*"'   # before and after a volume change
-```
+That answer also settles **why the volume is written as a level and never as dB**: `/Status` reported
+`db="-56.7"` at volume 19, and setting level 19 answered `db="-56.8"`. The level is exact and the dB
+is derived and drifts. And note the etag on that response belongs to the **volume** resource, not to
+`/Status`; feeding it into the status chain would be a quiet mistake.
 
-**The fixtures are still mostly constructed.** Everything in `tests/fixtures/bluos.xml.ts` beyond
-the two transcribed specification examples was written from field descriptions rather than
-captured.
+**Real captures are in the fixtures.** `REAL_STREAM_STATUS` and `REAL_SYNC_STATUS` in
+`tests/fixtures/bluos.xml.ts` are byte for byte what the M10 sent. They caught three things the
+constructed fixtures did not: the player sends `<sleep></sleep>` where the specification prints
+`<sleep/>`, it carries fields the specification never documents (`currentImage`, `serviceName`,
+`serviceType`, `class`, `hasSubwoofer`), and its `/SyncStatus` has nested children where the
+specification's example has only `<master>` and `<slave>`. All of which is the case the
+specification means by "Undocumented responses should be ignored".
+
+The shapes still written from field descriptions rather than captured, because the one player to
+hand is not doing them: a queue-backed track with a length, a muted player, a fixed output, and a
+group.
 
 `node tools/capture.mjs <address>` asks a real player the questions the design rests on and prints
 what it finds: whether a requested long-poll `timeout` is honoured or clamped to 100, what an etag

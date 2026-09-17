@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { describePlayer, readSyncStatus } from '../../src/bluos/sync.reading.js';
-import { FOLLOWER_SYNC, SPEC_SYNC_STATUS, UNINITIALISED_SYNC } from '../fixtures/bluos.xml.js';
+import { FOLLOWER_SYNC, REAL_SYNC_STATUS, SPEC_SYNC_STATUS, UNINITIALISED_SYNC } from '../fixtures/bluos.xml.js';
 
 describe('readSyncStatus', () => {
     it('reads the specification’s own example, whose fields are all attributes', () => {
@@ -42,6 +42,33 @@ describe('readSyncStatus', () => {
 
     it('assumes a player is set up when it does not say, rather than hiding it', () => {
         expect(readSyncStatus('<SyncStatus name="Study"/>')?.initialized).toBe(true);
+    });
+
+    describe('a real player', () => {
+        const sync = readSyncStatus(REAL_SYNC_STATUS);
+
+        it('reads who it is', () => {
+            expect(sync).toMatchObject({ name: 'Office', brand: 'NAD', model: 'M10v2', modelName: 'M10 V2', volume: 19, initialized: true });
+        });
+
+        // An ungrouped player has no group attribute and no mute attribute at all.
+        it('reads an ungrouped player as being in no group', () => {
+            expect(sync?.group).toBeUndefined();
+            expect(sync?.leader).toBeUndefined();
+            expect(sync?.followers).toEqual([]);
+            expect(sync?.muted).toBe(false);
+        });
+
+        // The etag here is what /Status reports as <syncStat>, which is how one long-poll covers both.
+        it('carries the etag that /Status reports as syncStat', () => {
+            expect(sync?.etag).toBe('203');
+        });
+
+        // Nested children the specification's example does not have, and attributes it never lists.
+        it('is unbothered by fields the specification never documents', () => {
+            expect(sync?.mac).toBe('90:56:82:00:BC:99');
+            expect(sync?.id).toBe('192.168.1.234:11000');
+        });
     });
 
     it('refuses a body that is not a SyncStatus response', () => {

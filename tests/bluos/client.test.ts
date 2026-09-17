@@ -66,13 +66,26 @@ describe('BluOsClient', () => {
         });
 
         it('read the level a volume command produced', async () => {
-            const player = new FakePlayer();
             const client = new BluOsClient('http://player:11000', {
                 userAgent: 'test',
                 fetch: (async () => new Response('<volume db="-49.9" mute="0" offsetDb="0" etag="x">15</volume>')) as typeof globalThis.fetch,
             });
             expect(await client.command('/Volume', { level: 15 }, never)).toEqual({ volume: 15, muted: false });
-            expect(player.requests).toEqual([]);
+        });
+
+        // Verbatim from an NAD M10 V2 answering `/Volume?level=19` on 2026-09-17. The level comes
+        // back EXACTLY as asked, which is what lets the volume model treat a write as confirmed
+        // rather than having to chase a clamped value. Note the declaration in front of it, the
+        // empty `source` attribute, and the etag, which belongs to the volume resource and is NOT
+        // the one the status long-poll chains.
+        it('reads a real player’s answer to a volume command', async () => {
+            const body =
+                '<?xml version="1.0" encoding="UTF-8"?>\n<volume db="-56.8" offsetDb="0" mute="0" etag="0ed29e31eb7663bfa4b1a2207ff5a8ba" source="">19</volume>';
+            const client = new BluOsClient('http://player:11000', {
+                userAgent: 'test',
+                fetch: (async () => new Response(body)) as typeof globalThis.fetch,
+            });
+            expect(await client.command('/Volume', { level: 19 }, never)).toEqual({ volume: 19, muted: false });
         });
     });
 
