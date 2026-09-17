@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+        "target": "es2022",
+        "lib": ["es2022", "DOM"],
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitOverride": true,
+        "isolatedModules": true,
+        "verbatimModuleSyntax": true,
+        "forceConsistentCasingInFileNames": true,
+
+        // The Stream Deck SDK's `@action` is a STANDARD (TC39) decorator. The legacy
+        // `experimentalDecorators` types it as the other kind, so `tsc` would reject it.
+        "experimentalDecorators": false,
+        "emitDecoratorMetadata": false,
+
+        // tsup writes the bundle; tsc only checks it.
+        "noEmit": true,
+        "rootDir": "./src",
+        "skipLibCheck": true
+    },
+    "include": ["./src/**/*"],
+    "exclude": ["node_modules", "com.maroonedsoftware.bluos.sdPlugin"]
+}

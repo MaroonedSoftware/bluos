@@ -1,0 +1,9 @@
+{
+    // Type-checks the tests as well as src. The build config above deliberately leaves `tests/`
+    // out, so `pnpm build` checks only what ships; this is what checks the rest.
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "rootDir": "."
+    },
+    "include": ["./src/**/*", "./tests/**/*", "./tools/**/*", "*.config.ts"]
+}

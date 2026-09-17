@@ -1,0 +1,17 @@
+node_modules/
+artifacts/
+
+# The bundle and the panel script are built from src/ and rebuilt from nothing.
+com.maroonedsoftware.bluos.sdPlugin/bin/
+com.maroonedsoftware.bluos.sdPlugin/ui/*.js
+
+# Written by the Stream Deck app inside the plugin folder, never by us.
+com.maroonedsoftware.bluos.sdPlugin/logs/
+
+.DS_Store
+
+# Written by the SDK logger if the plugin is ever launched from the repo root by mistake.
+logs/
+
+# A stray store from an install that was interrupted; the real one is global.
+.pnpm-store/

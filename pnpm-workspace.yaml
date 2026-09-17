@@ -1,0 +1,10 @@
+# pnpm 11 reads its settings here rather than from package.json's "pnpm" field.
+
+# esbuild is the one dependency allowed to run an install script: it links the prebuilt binary for
+# this platform, and tsup cannot build without it. Nothing else here runs anything at install time.
+allowBuilds:
+    esbuild: true
+
+# pnpm 11 re-checks the store before every `pnpm run`, and a check that wants to purge
+# node_modules cannot ask in a non-interactive shell. The install is explicit here.
+verifyDepsBeforeRun: false

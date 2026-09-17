@@ -1,0 +1,34 @@
+{
+    "name": "bluos-streamdeck",
+    "version": "0.1.0",
+    "private": true,
+    "description": "A BluOS player on a Stream Deck: what is playing, the transport, and the volume.",
+    "license": "MIT",
+    "type": "module",
+    "scripts": {
+        "build": "tsc --noEmit && tsup",
+        "typecheck": "tsc --noEmit -p tsconfig.tests.json",
+        "lint": "eslint --fix",
+        "format": "prettier --write .",
+        "test": "tsup && vitest run",
+        "validate": "streamdeck validate com.maroonedsoftware.bluos.sdPlugin --no-update-check",
+        "installer": "rm -rf artifacts && mkdir -p artifacts/staging && cp -R com.maroonedsoftware.bluos.sdPlugin artifacts/staging/ && streamdeck pack artifacts/staging/com.maroonedsoftware.bluos.sdPlugin --output artifacts --force --no-update-check && rm -rf artifacts/staging",
+        "link": "streamdeck link com.maroonedsoftware.bluos.sdPlugin",
+        "restart": "streamdeck restart com.maroonedsoftware.bluos"
+    },
+    "devDependencies": {
+        "@elgato/cli": "^1.9.0",
+        "@elgato/streamdeck": "^2.1.2",
+        "@eslint/js": "^9.0.0",
+        "@types/node": "^24.0.0",
+        "@types/ws": "^8.5.0",
+        "bonjour-service": "^1.4.4",
+        "eslint": "^9.0.0",
+        "prettier": "^3.0.0",
+        "tsup": "^8.0.0",
+        "typescript": "^5.6.0",
+        "typescript-eslint": "^8.0.0",
+        "vitest": "^3.0.0",
+        "ws": "^8.18.0"
+    }
+}
