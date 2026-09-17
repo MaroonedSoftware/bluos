@@ -186,9 +186,21 @@ export class FakeDeck {
         return this.settings.get(context) ?? {};
     }
 
-    /** The next message matching `match`, including ones already received. */
-    next(match: (message: FromPlugin) => boolean): Promise<FromPlugin> {
-        const already = this.received.find(match);
+    /** How many messages the plugin has sent so far, as a watermark for `next(..., from)`. */
+    get mark(): number {
+        return this.received.length;
+    }
+
+    /**
+     * The next message matching `match`.
+     *
+     * It searches what has ALREADY arrived first, because a plugin often answers before a test gets
+     * round to asking. That is usually what you want and is occasionally a trap: waiting for a
+     * frame a key drew once at startup will match that one and prove nothing. Pass `from`, taken
+     * from `mark` before the thing you are testing, to wait for a genuinely new one.
+     */
+    next(match: (message: FromPlugin) => boolean, from = 0): Promise<FromPlugin> {
+        const already = this.received.slice(from).find(match);
         if (already) return Promise.resolve(already);
         return new Promise((resolve, reject) => {
             const timer = setTimeout(() => {

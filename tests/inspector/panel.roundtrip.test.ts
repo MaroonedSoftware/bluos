@@ -37,7 +37,9 @@ describe('the settings panel and the plugin', () => {
         deck.fromPanel('key-1', NOW_PLAYING, { event: 'testConnection' });
 
         expect(await answer()).toEqual({ event: 'connection', ok: true, text: 'Connected to Office (NAD M10 V2).' });
-        expect(player.requests[0]).toBe('/SyncStatus');
+        // The key is watching the player too by now, so the check's own request is among them
+        // rather than first.
+        expect(player.requests).toContain('/SyncStatus');
     });
 
     it('asks for an address before it asks the network', async () => {
@@ -83,12 +85,22 @@ describe('the settings panel and the plugin', () => {
         deck.appear('key-1', NOW_PLAYING, { address: player.address });
         deck.panelOpens('key-1', NOW_PLAYING);
 
+        // Let the key settle ON THE PLAYER first. The first title a key draws is "No player",
+        // before it has asked anything, so waiting for any title at all would wait for nothing.
+        await deck.next(message => message.event === 'setTitle' && String((message.payload as { title?: string })?.title ?? '').includes('Deadair'));
+
+        // From here, so that a frame the key drew at startup cannot stand in for a new one.
+        const mark = deck.mark;
         deck.panelWrites('key-1', { address: '' });
-        await new Promise(resolve => setTimeout(resolve, 100));
         deck.fromPanel('key-1', NOW_PLAYING, { event: 'testConnection' });
 
-        expect((await answer()).text).toContain('Enter the player');
-        expect(player.requests).toEqual([]);
+        // The panel believes the key still points at a player. The plugin was handed settings that
+        // say otherwise, and answers about those.
+        const said = await deck.next(m => m.event === 'sendToPropertyInspector' && isToInspector(m.payload), mark);
+        expect((said.payload as unknown as { text: string }).text).toContain('Enter the player');
+        // And the key itself followed the same settings, rather than staying where the panel left it.
+        const back = await deck.next(m => m.event === 'setTitle' && (m.payload as { title?: string })?.title === 'No player', mark);
+        expect((back.payload as { title: string }).title).toBe('No player');
     });
 
     it('falls back to the default player for a key that has none of its own', async () => {

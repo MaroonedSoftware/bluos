@@ -122,6 +122,31 @@ race where an answer lands between the abort and the rejection.
 had no push channel. Here every command answers with the state it produced, and the long-poll wakes
 within milliseconds of the change anyway.
 
+## Every key holds its own player
+
+**`PlayerKeys` departs from the sibling plugin's `StationKeys`, and this is the largest structural
+difference between the two.** That one acquires the poller ONCE, on the first key of an action,
+because one API key meant one station and every key necessarily watched it. Here the address is a
+per-key setting, so two Now Playing keys may name two different players. The hold is therefore per
+key: its own watcher, its own subscription, its own reading, and a `render(id)` that draws one key
+rather than all of them.
+
+Six keys on one player still cost one long-poll, because the pool hands them the same watcher. What
+changed is who holds it, not how many there are.
+
+**A key adopts the default by WRITING it into itself**, through `KeyFace.setSettings`. That method is
+on the face rather than reached for through the SDK because the SDK has no way to find an action by
+its id: settings are written through the action object, and the face is the only handle a key class
+has on one. The write comes back as `didReceiveSettings`, which is what really re-points the key;
+pointing it locally as well is what makes it draw now instead of a round trip later.
+
+**Subscribing hands over the current reading at once**, so a second key on a player somebody is
+already watching draws immediately rather than sitting on the manifest's own picture until the next
+change.
+
+**A subscription checks it is still the right one before it draws.** A key that moves to another
+player while a reading is in flight would otherwise take the old player's answer.
+
 ## The settings, and the panel
 
 **Which player a key talks to is an ACTION setting, not a global one, and this is the one place the
@@ -158,6 +183,12 @@ that answers it. `src/inspector/` is built by tsup into `ui/player.js` beside th
 has its OWN socket to the app, so a `setSettings` from the panel reaches the APP, which then tells
 the plugin. `FakeDeck.panelWrites` models that. Sending `setSettings` down the plugin's own socket
 would be backwards and would quietly test nothing.
+
+**`FakeDeck.next` searches what has already arrived, which is usually right and occasionally a
+trap.** Waiting for a frame a key drew once at startup will match that one and prove nothing: a Now
+Playing key draws "No player" the instant it appears, before it has asked anything. Pass `from`,
+taken from `deck.mark` before the thing under test, to wait for a genuinely new message. A test that
+passed and then failed on a rerun is what found this.
 
 **The end-to-end panel test serves a real player on loopback.** The bundle runs in its own process
 and cannot be handed a fake `fetch`, so `tests/fixtures/serve.player.ts` answers real HTTP with the
