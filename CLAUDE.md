@@ -393,7 +393,7 @@ of `pnpm test`. Two different things come of that, and they were conflated once 
   fine, because the validator cannot reach the network at all. A URL that `curl` fetches with a 200
   fails this way too, which is what gives the game away.
 - **With the network it WARNS**, "URL should return success (received 404)", because
-  `github.com/robert-dean/bluos` does not exist yet. A warning, so `validate` and `installer` both
+  `github.com/maroonedsoftware/bluos` does not exist yet. A warning, so `validate` and `installer` both
   succeed, and the warning goes when the repository is pushed.
 
 **The plugin must be launched from inside the `.sdPlugin` folder.** The SDK reads `manifest.json`
