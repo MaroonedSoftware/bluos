@@ -115,6 +115,23 @@ describe('the volume dial', () => {
         pool.disposeAll();
     });
 
+    // One fast turn of a dial on an amplifier is the case the maximum exists for.
+    it('stops a fast spin at its maximum', async () => {
+        const player = new FakePlayer({ volume: 20 });
+        const { dial, pool } = rig(player);
+        dial.appear(new FakeDial('d1'), { address: 'p', maxVolume: 30 });
+        await settle();
+
+        for (let i = 0; i < 40; i++) {
+            dial.rotate('d1', 3, false);
+            await Promise.resolve();
+        }
+        await vi.advanceTimersByTimeAsync(1_000);
+        await settle();
+        expect(Math.max(...levels(player))).toBe(30);
+        pool.disposeAll();
+    });
+
     describe('pressing the knob', () => {
         it('mutes, and pressing again unmutes', async () => {
             const player = new FakePlayer({ volume: 19 });

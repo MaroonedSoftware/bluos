@@ -160,6 +160,45 @@ describe('VolumeModel', () => {
         });
     });
 
+    describe('a maximum', () => {
+        it('stops a turn up at the cap', () => {
+            const volume = model();
+            volume.cap = 40;
+            volume.reportFromPlayer(status({ volume: 38 }));
+            expect(volume.nudge(5)).toBe(40);
+            expect(volume.nudge(5)).toBeUndefined();
+        });
+
+        it('never lets setting a level go past it', () => {
+            const volume = model();
+            volume.cap = 40;
+            volume.reportFromPlayer(status({ volume: 10 }));
+            expect(volume.setTo(90)).toBe(40);
+        });
+
+        // "Up" must never make a room quieter. A level somebody set from the BluOS app is theirs.
+        it('does not pull a louder level down to the cap when somebody presses up', () => {
+            const volume = model();
+            volume.cap = 40;
+            volume.reportFromPlayer(status({ volume: 70 }));
+            expect(volume.nudge(5)).toBeUndefined();
+            expect(volume.level).toBe(70);
+        });
+
+        it('still turns down normally from above the cap', () => {
+            const volume = model();
+            volume.cap = 40;
+            volume.reportFromPlayer(status({ volume: 70 }));
+            expect(volume.nudge(-5)).toBe(65);
+        });
+
+        it('is no limit at all at its default', () => {
+            const volume = model();
+            volume.reportFromPlayer(status({ volume: 98 }));
+            expect(volume.nudge(5)).toBe(100);
+        });
+    });
+
     it('has nothing to move before the player has said where it is', () => {
         expect(model().nudge(5)).toBeUndefined();
     });

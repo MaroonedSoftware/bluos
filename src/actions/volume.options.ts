@@ -17,7 +17,24 @@ export type VolumeSettings = {
     step?: number;
     /** The level in the key's title. Absent means shown. */
     showLevel?: boolean;
+    /** The loudest this key will ask for, out of 100. Absent means no limit. */
+    maxVolume?: number;
 };
+
+/** A volume dial's own settings. */
+export type DialSettings = {
+    /** The loudest this dial will ask for, out of 100. Absent means no limit. */
+    maxVolume?: number;
+};
+
+export type VolumeDialSettings = PlayerSettings & DialSettings;
+
+/** A cap read from settings: a whole number from 1 to 100, and 100, meaning none, otherwise. */
+export function capFrom(settings: unknown): number {
+    const given = (typeof settings === 'object' && settings !== null ? settings : {}) as { maxVolume?: unknown };
+    const cap = given.maxVolume;
+    return typeof cap === 'number' && Number.isFinite(cap) ? Math.min(100, Math.max(1, Math.round(cap))) : 100;
+}
 
 export type VolumeKeySettings = PlayerSettings & VolumeSettings;
 
@@ -25,6 +42,7 @@ export interface VolumeOptions {
     direction: VolumeDirection;
     step: number;
     showLevel: boolean;
+    cap: number;
 }
 
 /**
@@ -42,5 +60,6 @@ export function volumeOptionsFrom(settings: unknown): VolumeOptions {
         direction: given.direction === 'down' || given.direction === 'mute' ? given.direction : 'up',
         step,
         showLevel: given.showLevel !== false,
+        cap: capFrom(settings),
     };
 }

@@ -192,6 +192,19 @@ not open", because those are fixed in different places.
 sent through `sendToPropertyInspector`, which takes a JSON value, and an interface does not satisfy
 an index signature. The settings types are aliases for the same reason.
 
+## A maximum volume
+
+**Every volume control can be capped, and it is a safety limit rather than a preference.** On an
+amplifier, one fast turn of a dial or a held key can take a room somewhere nobody wanted it. The
+repeat ceiling limits how LONG a key runs; this limits how loud anything gets. HiFi Control, the
+only other BluOS plugin on the Marketplace, has one, and it was the second thing the review of
+other plugins turned up.
+
+**The cap limits only what this plugin asks for.** A level somebody set from the BluOS app is left
+alone, and pressing "up" above the cap does nothing rather than pulling the room down to it, because
+"up" must never make things quieter. Down is a step down from wherever the level is: clamped to the
+cap instead, one press from 70 with a cap of 40 dropped the room to 40, which a test caught.
+
 ## The dial
 
 **`PlayerKeys` is generic over the control, and `KeyControls` adds the painter.** A dial and a key

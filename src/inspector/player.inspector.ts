@@ -28,6 +28,7 @@ type PanelSettings = {
     direction?: 'up' | 'down' | 'mute';
     step?: number;
     showLevel?: boolean;
+    maxVolume?: number;
 };
 
 /**
@@ -38,6 +39,7 @@ type PanelSettings = {
  */
 const NOW_PLAYING = 'com.maroonedsoftware.bluos.now-playing';
 const VOLUME = 'com.maroonedsoftware.bluos.volume';
+const VOLUME_DIAL = 'com.maroonedsoftware.bluos.volume-dial';
 const DEFAULT_STEP = 5;
 
 const field = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -60,15 +62,44 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     const step = field<HTMLInputElement>('step');
     const stepRow = field<HTMLDivElement>('stepRow');
     const showLevel = field<HTMLInputElement>('showLevel');
+    const limit = field<HTMLDivElement>('limit');
+    const maxVolume = field<HTMLInputElement>('maxVolume');
 
     // The display choices belong to the Now Playing key and to nothing else, so the panel only
     // offers them where they do something. The app opens ONE panel for every action in this plugin.
     display.hidden = parsed.action !== NOW_PLAYING;
     volume.hidden = parsed.action !== VOLUME;
+    limit.hidden = parsed.action !== VOLUME && parsed.action !== VOLUME_DIAL;
 
     /** A mute key has nothing to step by, so the field goes rather than sitting there meaning nothing. */
     const showStep = (): void => {
         stepRow.hidden = direction.value === 'mute';
+    };
+
+    /**
+     * Puts a key's settings into the fields.
+     *
+     * One function, called when the panel opens and whenever the app sends the settings again, so
+     * the two cannot drift. Absent means shown for every checkbox, which is the rule the plugin reads
+     * them by, and an empty maximum means no limit.
+     */
+    const fill = (settings: PanelSettings | undefined, keepTyping: boolean): void => {
+        if (settings?.address !== undefined && !(keepTyping && document.activeElement === address)) address.value = settings.address;
+        showTitle.checked = settings?.showTitle !== false;
+        showProgress.checked = settings?.showProgress !== false;
+        direction.value = settings?.direction ?? 'up';
+        step.value = String(settings?.step ?? DEFAULT_STEP);
+        showLevel.checked = settings?.showLevel !== false;
+        if (!(keepTyping && document.activeElement === maxVolume)) {
+            maxVolume.value = settings?.maxVolume === undefined || settings.maxVolume >= 100 ? '' : String(settings.maxVolume);
+        }
+        showStep();
+    };
+
+    /** A maximum as typed: a whole number below 100, or nothing, which is no limit at all. */
+    const typedCap = (): { maxVolume?: number } => {
+        const value = Math.round(Number(maxVolume.value));
+        return maxVolume.value.trim() === '' || !Number.isFinite(value) || value >= 100 ? {} : { maxVolume: Math.max(1, value) };
     };
 
     /** Whether the plugin has been asked something the panel is still waiting on an answer to. */
@@ -96,7 +127,8 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         const knob = volume.hidden
             ? {}
             : { direction: direction.value as 'up' | 'down' | 'mute', step: Number(step.value) || DEFAULT_STEP, showLevel: showLevel.checked };
-        send(messages.setSettings({ ...settingsFrom(typed), ...shown, ...knob }));
+        const capped = limit.hidden ? {} : typedCap();
+        send(messages.setSettings({ ...settingsFrom(typed), ...shown, ...knob, ...capped }));
         if (typed !== '') send(messages.setGlobalSettings({ defaultAddress: typed }));
     };
 
@@ -153,12 +185,7 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     socket.addEventListener('open', () => {
         send(messages.register(registerEvent));
         address.value = parsed.payload?.settings?.address ?? '';
-        showTitle.checked = parsed.payload?.settings?.showTitle !== false;
-        showProgress.checked = parsed.payload?.settings?.showProgress !== false;
-        direction.value = parsed.payload?.settings?.direction ?? 'up';
-        step.value = String(parsed.payload?.settings?.step ?? DEFAULT_STEP);
-        showLevel.checked = parsed.payload?.settings?.showLevel !== false;
-        showStep();
+        fill(parsed.payload?.settings, false);
         // A key that has never been configured may still have adopted the default by the time the
         // panel opens, so ask the app rather than trusting what came with the panel.
         send(messages.getSettings());
@@ -169,15 +196,7 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     socket.addEventListener('message', event => {
         const message = JSON.parse(String(event.data)) as { event?: string; payload?: unknown };
         if (message.event === 'didReceiveSettings') {
-            const settings = (message.payload as { settings?: PanelSettings } | undefined)?.settings;
-            if (settings?.address !== undefined && document.activeElement !== address) address.value = settings.address;
-            // Absent means shown, which is the same rule the plugin reads them by.
-            showTitle.checked = settings?.showTitle !== false;
-            showProgress.checked = settings?.showProgress !== false;
-            direction.value = settings?.direction ?? 'up';
-            step.value = String(settings?.step ?? DEFAULT_STEP);
-            showLevel.checked = settings?.showLevel !== false;
-            showStep();
+            fill((message.payload as { settings?: PanelSettings } | undefined)?.settings, true);
             return;
         }
         if (message.event !== 'sendToPropertyInspector') return;
@@ -225,4 +244,5 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         save();
     });
     step.addEventListener('change', save);
+    maxVolume.addEventListener('change', save);
 };

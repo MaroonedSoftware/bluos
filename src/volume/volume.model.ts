@@ -40,6 +40,16 @@ export class VolumeModel {
     muted = false;
     /** The player has a fixed output level, reported as a volume of -1. Nothing can be set. */
     fixed = false;
+    /**
+     * The loudest this control will ask for, out of 100.
+     *
+     * A safety limit rather than a preference. On an amplifier, one fast turn of a dial or a held key
+     * can take a room somewhere nobody wanted it, and the repeat ceiling only limits how LONG a key
+     * runs, not how loud it gets. It limits only what this control asks for. A level somebody set from
+     * the BluOS app is left alone, and pressing "up" above the cap does nothing rather than dropping
+     * the room to the cap, because "up" must never make things quieter.
+     */
+    cap = 100;
 
     constructor(options: VolumeModelOptions = {}) {
         this.settleMs = options.settleMs ?? SETTLE_MS;
@@ -64,13 +74,21 @@ export class VolumeModel {
         if (this.fixed) return undefined;
         const from = this.level;
         if (from === undefined) return undefined;
-        return this.setTo(from + delta);
+        if (delta > 0) {
+            // Up stops at the cap, or wherever the level already is if something else put it higher.
+            const ceiling = Math.max(from, this.cap);
+            const target = Math.min(from + delta, ceiling);
+            return target === from ? undefined : this.setTo(target, ceiling);
+        }
+        // Down is a step down from wherever the level is. Clamped to the cap instead, one press from
+        // 70 with a cap of 40 would drop the room to 40 in a single step, which a test caught.
+        return this.setTo(from + delta, Math.max(from, this.cap));
     }
 
-    /** Sets the level outright and returns what to write. */
-    setTo(level: number): number | undefined {
+    /** Sets the level outright and returns what to write. Never above the cap unless told otherwise. */
+    setTo(level: number, ceiling: number = this.cap): number | undefined {
         if (this.fixed) return undefined;
-        const wanted = Math.min(100, Math.max(0, Math.round(level)));
+        const wanted = Math.min(100, ceiling, Math.max(0, Math.round(level)));
         this.intended = wanted;
         this.asked();
         return wanted;

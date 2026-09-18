@@ -41,9 +41,12 @@ export class VolumeKeys extends KeyControls {
     private readonly volumes = new Map<string, Knob>();
 
     override appear(face: KeyFace, settings: VolumeKeySettings): void {
+        const options = volumeOptionsFrom(settings);
+        const model = new VolumeModel();
+        model.cap = options.cap;
         this.volumes.set(face.id, {
-            options: volumeOptionsFrom(settings),
-            model: new VolumeModel(),
+            options,
+            model,
             writer: new VolumeWriter(level => this.write(face.id, level)),
         });
         super.appear(face, settings);
@@ -58,7 +61,10 @@ export class VolumeKeys extends KeyControls {
 
     override settingsChanged(id: string, settings: VolumeKeySettings): void {
         const held = this.volumes.get(id);
-        if (held !== undefined) held.options = volumeOptionsFrom(settings);
+        if (held !== undefined) {
+            held.options = volumeOptionsFrom(settings);
+            held.model.cap = held.options.cap;
+        }
         super.settingsChanged(id, settings);
         this.render(id);
     }

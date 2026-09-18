@@ -170,6 +170,35 @@ describe('the volume key', () => {
         });
     });
 
+    // A held key is the fastest way to a loud room, which is what the maximum is for.
+    it('holds a held key at its maximum', async () => {
+        const player = new FakePlayer({ volume: 20 });
+        const { keys, pool } = rig(player);
+        keys.appear(new FakeKey('k1'), { address: 'p', direction: 'up', step: 5, maxVolume: 35 });
+        await settle();
+
+        await keys.down('k1');
+        await vi.advanceTimersByTimeAsync(10_000);
+        await settle();
+        keys.up('k1');
+        expect(Math.max(...levels(player))).toBe(35);
+        pool.disposeAll();
+    });
+
+    it('takes a new maximum from its settings', async () => {
+        const player = new FakePlayer({ volume: 20 });
+        const { keys, pool } = rig(player);
+        keys.appear(new FakeKey('k1'), { address: 'p', direction: 'up', step: 5 });
+        await settle();
+        keys.settingsChanged('k1', { address: 'p', direction: 'up', step: 5, maxVolume: 22 });
+
+        await keys.down('k1');
+        keys.up('k1');
+        await settle();
+        expect(levels(player)).toEqual([22]);
+        pool.disposeAll();
+    });
+
     describe('refusing', () => {
         it('refuses a fixed output and says so on the key', async () => {
             const player = new FakePlayer({ volume: -1 });

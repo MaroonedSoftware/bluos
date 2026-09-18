@@ -7,6 +7,7 @@ import { VolumeModel } from '../volume/volume.model.js';
 import { VolumeWriter } from '../volume/volume.writer.js';
 import { PressWatch } from './dial.arming.js';
 import { PlayerKeys } from './player.keys.js';
+import { capFrom, type VolumeDialSettings } from './volume.options.js';
 
 /** How much one detent moves the level, and how much more a press-and-turn moves it. */
 export const DIAL_STEP = 2;
@@ -42,6 +43,18 @@ export class VolumeDial extends PlayerKeys<DialFace> {
             writer: new VolumeWriter(level => this.write(face.id, level)),
             press: new PressWatch(),
         });
+    }
+
+    override appear(face: DialFace, settings: VolumeDialSettings): void {
+        super.appear(face, settings);
+        const knob = this.knobs.get(face.id);
+        if (knob !== undefined) knob.model.cap = capFrom(settings);
+    }
+
+    override settingsChanged(id: string, settings: VolumeDialSettings): void {
+        const knob = this.knobs.get(id);
+        if (knob !== undefined) knob.model.cap = capFrom(settings);
+        super.settingsChanged(id, settings);
     }
 
     protected override onRemove(id: string): void {
