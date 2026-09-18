@@ -160,6 +160,37 @@ undone by pressing again.
 to resume when in a pause state but not when in stop state." A stopped player has nothing loaded, so
 the log says to choose something in the BluOS app first.
 
+## The now-playing strip
+
+**One action placed on all four dials, each drawing the quarter its column says**: the cover, then
+the track, then the player and what it is doing, then the time, with one progress bar running along
+the bottom of all four. Nothing coordinates the four. They read the same player through the same
+watcher and cut the same view, so they agree, and four dials still cost one long-poll. The quarter
+comes from the dial's column rather than the order it was placed in, so the panel reads left to right
+however it was dragged on, and a fifth dial on a wider deck wraps round to the start.
+
+**It is built only from what is known to draw on a Stream Deck +.** The cover goes into a layout
+`pixmap` as the raw raster the cover cache produces, which was measured on the device on 2026-09-18.
+The composed SVG a key draws has never been tried in a pixmap and is not used. Everything else is the
+layout's own text and bar items, switched on and off per quarter with `enabled`, because the four
+share one layout.
+
+**The painter now compares feedback by its JSON.** A value can be an object that also switches an
+item on or off, and two equal objects are never the same object, so comparing by identity would have
+sent every quarter's whole payload on every half-second tick.
+
+**Turning skips a track, with a 700 ms guard after each skip.** One detent is one track, and a dial is
+easy to brush, so without the guard a knocked knob could run through half an album. It uses the same
+`skipTarget` as the Next and Previous keys, so a station's own skip works here too. Pressing or
+tapping plays or pauses. The volume stays on the volume dial, which is why turning does not do it.
+
+**A failure is said once, in the title quarter**, rather than four times across the strip.
+
+**The manifest test checks every dial layout against the code that fills it**, reading each frame
+interface's fields from the source to its closing brace. The strip's frame has nested object types,
+which the first version of that pattern would have cut short at the first `}`; it was checked by
+adding a bogus field and watching it fail.
+
 ## Finding players
 
 **The browse runs in the PLUGIN process, and it has to.** The settings panel is a Chromium page

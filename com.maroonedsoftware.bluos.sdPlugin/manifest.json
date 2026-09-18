@@ -202,6 +202,27 @@
             ]
         },
         {
+            "UUID": "com.maroonedsoftware.bluos.strip",
+            "Name": "Now playing strip",
+            "Tooltip": "Put it on all four dials: the cover, the track, the player and the time across the whole touch strip. Turn to skip, press to play or pause.",
+            "Icon": "imgs/actions/strip/icon",
+            "Controllers": ["Encoder"],
+            "SupportedInMultiActions": false,
+            "Encoder": {
+                "layout": "layouts/strip.json",
+                "TriggerDescription": {
+                    "Rotate": "Skip",
+                    "Push": "Play or pause",
+                    "Touch": "Play or pause"
+                }
+            },
+            "States": [
+                {
+                    "Image": "imgs/actions/strip/key"
+                }
+            ]
+        },
+        {
             "UUID": "com.maroonedsoftware.bluos.volume-dial",
             "Name": "Volume dial",
             "Tooltip": "Turn for the volume, press to mute, tap the strip to play or pause.",

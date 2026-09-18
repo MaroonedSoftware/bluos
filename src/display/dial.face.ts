@@ -38,7 +38,7 @@ export const THROTTLE_MS = 50;
 export class DialPainter {
     private readonly dials = new Map<
         string,
-        { face: DialFace; sent: DialFrame; timer?: ReturnType<typeof setTimeout>; waiting?: DialFrame; lastSentAt: number }
+        { face: DialFace; sent: Record<string, string>; timer?: ReturnType<typeof setTimeout>; waiting?: Record<string, unknown>; lastSentAt: number }
     >();
 
     constructor(private readonly now: () => number = () => Date.now()) {}
@@ -59,7 +59,7 @@ export class DialPainter {
     }
 
     /** Tells one dial whatever in the frame has actually changed, no faster than the throttle allows. */
-    paint(id: string, frame: DialFrame): void {
+    paint(id: string, frame: DialFrame | Record<string, unknown>): void {
         const dial = this.dials.get(id);
         if (dial === undefined) return;
 
@@ -77,11 +77,15 @@ export class DialPainter {
             return;
         }
 
+        // Compared by their JSON, because a value can be an object that also switches an item on or off,
+        // and two equal objects are never the same object.
         const changed: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(frame)) {
-            if (value === undefined || dial.sent[key as keyof DialFrame] === value) continue;
+            if (value === undefined) continue;
+            const seen = JSON.stringify(value);
+            if (dial.sent[key] === seen) continue;
             changed[key] = value;
-            (dial.sent as Record<string, unknown>)[key] = value;
+            dial.sent[key] = seen;
         }
         if (Object.keys(changed).length === 0) return;
 

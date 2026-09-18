@@ -7,6 +7,17 @@ import { KeyControls } from './key.controls.js';
 export type Direction = 'next' | 'previous';
 
 /**
+ * Where to ask to move a track: the queue's own verb, the station's action, or nowhere.
+ *
+ * Shared by the Next and Previous keys and the panel's dials, so there is one reading of the
+ * specification's "next and previous are not available (but see also actions)".
+ */
+export function skipTarget(status: StatusReading, direction: Direction): string | undefined {
+    if (status.queued) return direction === 'next' ? '/Skip' : '/Back';
+    return direction === 'next' ? status.actions.skip : status.actions.back;
+}
+
+/**
  * Next track and previous track.
  *
  * Playing a queue, they send `/Skip` and `/Back`. On a stream the queue is not the source, and the
@@ -44,10 +55,8 @@ export abstract class SkipKeys extends KeyControls {
         await runCommand(face, () => watcher.command((client, signal) => client.command(target, {}, signal)), this.world.log);
     }
 
-    /** Where to ask: the queue's own verb, the station's action, or nowhere. */
     private target(status: StatusReading): string | undefined {
-        if (status.queued) return this.direction === 'next' ? '/Skip' : '/Back';
-        return this.direction === 'next' ? status.actions.skip : status.actions.back;
+        return skipTarget(status, this.direction);
     }
 
     protected override render(id: string): void {

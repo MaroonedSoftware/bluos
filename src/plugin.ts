@@ -12,6 +12,8 @@ import { PresetAction } from './actions/preset.action.js';
 import { PresetKeys } from './actions/preset.keys.js';
 import { NextAction, PreviousAction } from './actions/skip.action.js';
 import { NextKeys, PreviousKeys } from './actions/skip.keys.js';
+import { StripDialAction } from './actions/strip.dial.action.js';
+import { StripDial } from './actions/strip.dial.js';
 import { TransportAction } from './actions/transport.action.js';
 import { TransportKeys } from './actions/transport.keys.js';
 import { VolumeAction } from './actions/volume.action.js';
@@ -62,6 +64,7 @@ const input = new InputKeys(world, artwork);
 const shuffle = new ShuffleKeys(world);
 const repeat = new RepeatKeys(world);
 const love = new LoveKeys(world);
+const strip = new StripDial(world, artwork);
 
 streamDeck.actions.registerAction(new NowPlayingAction(nowPlaying));
 streamDeck.actions.registerAction(new TransportAction(transport));
@@ -74,9 +77,10 @@ streamDeck.actions.registerAction(new InputAction(input));
 streamDeck.actions.registerAction(new ShuffleAction(shuffle));
 streamDeck.actions.registerAction(new RepeatAction(repeat));
 streamDeck.actions.registerAction(new LoveAction(love));
+streamDeck.actions.registerAction(new StripDialAction(strip));
 
 /** Every set of keys, for the events that are about all of them rather than about one key. */
-const everyKey = [nowPlaying, transport, next, previous, volume, dial, preset, input, shuffle, repeat, love];
+const everyKey = [nowPlaying, transport, next, previous, volume, dial, preset, input, shuffle, repeat, love, strip];
 
 const discovery = new Discovery({ browser: bonjourBrowser(), client: { userAgent } });
 

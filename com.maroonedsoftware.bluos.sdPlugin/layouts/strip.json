@@ -1,0 +1,44 @@
+{
+    "$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+    "id": "strip",
+    "items": [
+        {
+            "key": "cover",
+            "type": "pixmap",
+            "rect": [59, 5, 82, 82],
+            "zOrder": 1,
+            "enabled": false
+        },
+        {
+            "key": "line",
+            "type": "text",
+            "rect": [8, 16, 184, 30],
+            "alignment": "center",
+            "text-overflow": "ellipsis",
+            "font": { "size": 18, "weight": 600 },
+            "value": ""
+        },
+        {
+            "key": "sub",
+            "type": "text",
+            "rect": [8, 50, 184, 26],
+            "alignment": "center",
+            "text-overflow": "ellipsis",
+            "color": "#9aa3a8",
+            "font": { "size": 14, "weight": 400 },
+            "value": ""
+        },
+        {
+            "key": "bar",
+            "type": "bar",
+            "rect": [0, 92, 200, 8],
+            "subtype": 0,
+            "border_w": 0,
+            "bar_bg_c": "#2a2a2a",
+            "bar_fill_c": "#2e7bd6",
+            "range": { "min": 0, "max": 100 },
+            "value": 0,
+            "enabled": false
+        }
+    ]
+}

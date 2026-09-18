@@ -92,3 +92,13 @@ export class FakeDial {
         return Promise.resolve();
     }
 }
+
+/** A dial that knows which column it is in, as a panel's quarters do. */
+export class FakeStripDial extends FakeDial {
+    constructor(
+        id: string,
+        readonly coordinates: { column: number; row: number },
+    ) {
+        super(id);
+    }
+}

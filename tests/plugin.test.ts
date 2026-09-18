@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { NEXT, NOW_PLAYING, TRANSPORT } from '../src/actions/action.ids.js';
+import { NEXT, NOW_PLAYING, STRIP, TRANSPORT } from '../src/actions/action.ids.js';
 import { PAUSE } from '../src/actions/transport.keys.js';
 import { FakeDeck } from './fixtures/fake.deck.js';
 import { servePlayer, type ServedPlayer } from './fixtures/serve.player.js';
@@ -110,6 +110,24 @@ describe('the built plugin', () => {
         await new Promise(resolve => setTimeout(resolve, 300));
         const lastForB = deck.received.filter(m => m.context === 'key-b' && m.event === 'setTitle').at(-1);
         expect((lastForB?.payload as { title?: string })?.title).toContain('Deadair');
+    });
+
+    // A dial goes through different plumbing in the SDK from a key: setFeedback into a layout rather
+    // than setTitle and setImage. This is the panel's quarter for column 1, the track.
+    it('draws a real player onto a dial of the now-playing strip', async () => {
+        player = await servePlayer();
+        deck = await FakeDeck.launch();
+        deck.send({
+            event: 'willAppear',
+            action: STRIP,
+            context: 'dial-1',
+            device: 'FAKE-DEVICE-0001',
+            payload: { controller: 'Encoder', coordinates: { column: 1, row: 0 }, isInMultiAction: false, settings: { address: player.address } },
+        });
+
+        const feedback = await deck.next(m => m.event === 'setFeedback' && (m.payload as { line?: string })?.line === 'Deadair');
+        expect(feedback.payload).toMatchObject({ line: 'Deadair', sub: 'Led Zeppelin - When the Levee Breaks - Remaster' });
+        expect(deck.faults).toBe('');
     });
 
     it('takes a key appearing and disappearing without complaint', async () => {

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { readFileSync as read } from 'node:fs';
 
-import { ACTION_IDS, PLUGIN, VOLUME_DIAL } from '../src/actions/action.ids.js';
+import { ACTION_IDS, ENCODERS, PLUGIN, STRIP, VOLUME_DIAL } from '../src/actions/action.ids.js';
 
 // `streamdeck validate` checks much of this too, but it fetches the manifest's URLs first and so
 // needs the network, which a test run does not have. These are the parts that break without anybody
@@ -89,53 +89,71 @@ describe('the plugin manifest', () => {
         expect(page).toContain('<script src="player.js"></script>');
     });
 
-    it('puts the volume dial on an encoder and every other action on a key', () => {
+    it('puts the dial actions on an encoder and every other action on a key', () => {
         for (const action of manifest.Actions) {
-            expect(action.Controllers ?? ['Keypad'], action.UUID).toEqual(action.UUID === VOLUME_DIAL ? ['Encoder'] : ['Keypad']);
+            expect(action.Controllers ?? ['Keypad'], action.UUID).toEqual(action.UUID in ENCODERS ? ['Encoder'] : ['Keypad']);
+        }
+    });
+
+    it('gives each dial action the layout the code draws into', () => {
+        for (const [uuid, layout] of Object.entries(ENCODERS)) {
+            expect(manifest.Actions.find(action => action.UUID === uuid)?.Encoder?.layout, uuid).toBe(layout);
         }
     });
 });
 
-describe('the dial’s layout', () => {
-    const named = manifest.Actions.find(action => action.UUID === VOLUME_DIAL)?.Encoder?.layout;
-    const layout = JSON.parse(readFileSync(join(plugin, named!), 'utf8')) as Layout;
+/**
+ * The frame interface each dial layout is filled from, by the layout it fills.
+ *
+ * A key passed to `setFeedback` that the layout never declared fails SILENTLY: nothing errors, and
+ * nothing draws. So each layout is checked against the keys the code actually sends, read out of
+ * the source, rather than against a list written twice and left to drift.
+ */
+const FRAMES: Record<string, { file: string; frame: string }> = {
+    [VOLUME_DIAL]: { file: '../src/display/dial.face.ts', frame: 'DialFrame' },
+    [STRIP]: { file: '../src/display/strip.face.ts', frame: 'StripFrame' },
+};
 
-    it('is the file the manifest names', () => {
-        expect(named).toBe('layouts/volume.json');
-    });
+/** The top-level field names of an interface, read to its closing brace rather than the first `}`. */
+function fieldsOf(file: string, name: string): string[] {
+    const source = read(resolve(import.meta.dirname, file), 'utf8');
+    const body = new RegExp(`export interface ${name} \\{([\\s\\S]*?)\\n\\}`).exec(source)?.[1] ?? '';
+    return [...body.matchAll(/^ {4}(\w+)\??:/gm)].map(match => match[1] as string);
+}
 
-    // A key passed to `setFeedback` that the layout never declared fails SILENTLY: nothing errors,
-    // and nothing draws. So the layout is checked against the keys the code actually sends, read
-    // out of the source, rather than against a list written twice and left to drift.
-    it('declares every item the dial sends feedback to', () => {
-        const source = read(resolve(import.meta.dirname, '../src/display/dial.face.ts'), 'utf8');
-        const frame = /export interface DialFrame \{([^}]*)\}/.exec(source)?.[1] ?? '';
-        const sent = [...frame.matchAll(/^\s*(\w+)\??:/gm)].map(match => match[1] as string);
+for (const [uuid, layoutPath] of Object.entries(ENCODERS)) {
+    describe(`the layout for ${uuid.split('.').at(-1)}`, () => {
+        const layout = JSON.parse(readFileSync(join(plugin, layoutPath), 'utf8')) as Layout;
+        const source = FRAMES[uuid];
 
-        expect(sent.length).toBeGreaterThan(0);
-        const declared = layout.items.map(item => item.key);
-        for (const key of sent) expect(declared, `the layout has no "${key}" for setFeedback to fill`).toContain(key);
-    });
+        it('declares every item the code sends feedback to', () => {
+            expect(source, `no frame is registered for ${uuid}`).toBeDefined();
+            const sent = fieldsOf(source!.file, source!.frame);
+            expect(sent.length).toBeGreaterThan(0);
+            const declared = layout.items.map(item => item.key);
+            for (const key of sent) expect(declared, `${layoutPath} has no "${key}" for setFeedback to fill`).toContain(key);
+        });
 
-    it('keeps every item inside the 200 x 100 touch strip', () => {
-        for (const { key, rect } of layout.items) {
-            const [x, y, width, height] = rect;
-            expect(x >= 0 && y >= 0 && x + width <= 200 && y + height <= 100, key).toBe(true);
-        }
-    });
-
-    // Elgato's rule, and it fails by drawing the wrong thing rather than by complaining.
-    it('never overlaps two items on the same layer', () => {
-        for (const a of layout.items) {
-            for (const b of layout.items) {
-                if (a === b || (a.zOrder ?? 0) !== (b.zOrder ?? 0)) continue;
-                const overlaps =
-                    a.rect[0] < b.rect[0] + b.rect[2] &&
-                    b.rect[0] < a.rect[0] + a.rect[2] &&
-                    a.rect[1] < b.rect[1] + b.rect[3] &&
-                    b.rect[1] < a.rect[1] + a.rect[3];
-                expect(overlaps, `${a.key} / ${b.key}`).toBe(false);
+        it('keeps every item inside the 200 x 100 touch strip', () => {
+            for (const { key, rect } of layout.items) {
+                const [x, y, width, height] = rect;
+                expect(x >= 0 && y >= 0 && x + width <= 200 && y + height <= 100, key).toBe(true);
             }
-        }
+        });
+
+        // Elgato's rule, and it fails by drawing the wrong thing rather than by complaining.
+        it('never overlaps two items on the same layer', () => {
+            for (const a of layout.items) {
+                for (const b of layout.items) {
+                    if (a === b || (a.zOrder ?? 0) !== (b.zOrder ?? 0)) continue;
+                    const overlaps =
+                        a.rect[0] < b.rect[0] + b.rect[2] &&
+                        b.rect[0] < a.rect[0] + a.rect[2] &&
+                        a.rect[1] < b.rect[1] + b.rect[3] &&
+                        b.rect[1] < a.rect[1] + a.rect[3];
+                    expect(overlaps, `${a.key} / ${b.key}`).toBe(false);
+                }
+            }
+        });
     });
-});
+}

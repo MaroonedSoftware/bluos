@@ -18,6 +18,13 @@ export const INPUT = `${PLUGIN}.input`;
 export const SHUFFLE = `${PLUGIN}.shuffle`;
 export const REPEAT = `${PLUGIN}.repeat`;
 export const LOVE = `${PLUGIN}.love`;
+export const STRIP = `${PLUGIN}.strip`;
 
 /** Every action this plugin registers. The manifest must declare exactly these. */
-export const ACTION_IDS = [NOW_PLAYING, TRANSPORT, NEXT, PREVIOUS, VOLUME, VOLUME_DIAL, PRESET, INPUT, SHUFFLE, REPEAT, LOVE] as const;
+export const ACTION_IDS = [NOW_PLAYING, TRANSPORT, NEXT, PREVIOUS, VOLUME, VOLUME_DIAL, PRESET, INPUT, SHUFFLE, REPEAT, LOVE, STRIP] as const;
+
+/** The actions that live on a Stream Deck + dial rather than on a key, and the layout each draws into. */
+export const ENCODERS: Readonly<Record<string, string>> = {
+    [VOLUME_DIAL]: 'layouts/volume.json',
+    [STRIP]: 'layouts/strip.json',
+};
