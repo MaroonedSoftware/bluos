@@ -217,6 +217,26 @@ bare `+` in a query string is a space.
 player, the same reason discovery runs in the plugin, so the panel asks and the plugin reads the list
 and sends it back.
 
+## Inputs
+
+**An input key uses the specification's Active Input Selection (section 11.1)**: the inputs come from
+`/RadioBrowse?service=Capture` and each is played with `/Play?url=` and the URL it was listed with. The
+specification offers two other methods keyed on firmware version; this is the one it says also works
+for a BluOS HUB's inputs, and it needs no knowledge of which firmware is running.
+
+**Each input's URL arrives already percent-encoded, and is decoded on reading.** `URL="Capture%3Abluez%3Abluetooth"`
+passed straight to a query builder would be encoded again and reach the player as `%253A`. Decoded
+once when read and encoded once when sent, it arrives as the player wrote it. A test pins the exact
+request, because this is the kind of bug that fails silently on a real player and nowhere else.
+
+**Only physical inputs are listed.** The same response carries streaming services such as Spotify,
+which have no `inputType`, and a key that says "Input" should not quietly start a cloud service.
+
+**The key outlines itself while its input is playing**, which `/Status` reports as `inputId`, so a
+row of input keys reads like the selector on the front of an amplifier. Inputs change rarely and
+nothing in `/Status` says when they do, so the list is read once per player, and once more when a key
+asks for an input the list does not have.
+
 ## A maximum volume
 
 **Every volume control can be capped, and it is a safety limit rather than a preference.** On an

@@ -1,5 +1,6 @@
 import { urlFor } from './address.js';
 import { NotAPlayer, PlayerRejected } from './connection.failure.js';
+import { readInputs, type InputSource } from './inputs.reading.js';
 import { readPresets, type PresetList } from './presets.reading.js';
 import { readStatus, type StatusReading } from './status.reading.js';
 import { readSyncStatus, type SyncReading } from './sync.reading.js';
@@ -103,6 +104,14 @@ export class BluOsClient {
         const list = readPresets(body);
         if (!list) throw new NotAPlayer(body.slice(0, 80).replace(/\s+/g, ' ').trim() || 'an empty answer');
         return list;
+    }
+
+    /** Reads the player's physical inputs, and those of any hub attached to it. */
+    async inputs(signal: AbortSignal): Promise<InputSource[]> {
+        const body = await this.read('/RadioBrowse', { service: 'Capture' }, signal);
+        const inputs = readInputs(body);
+        if (!inputs) throw new NotAPlayer(body.slice(0, 80).replace(/\s+/g, ' ').trim() || 'an empty answer');
+        return inputs;
     }
 
     /**

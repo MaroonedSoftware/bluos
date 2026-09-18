@@ -9,7 +9,7 @@ import type { BrowseOutcome, DiscoveredPlayer } from '../discovery/discovery.js'
  * believes it typed. The sibling plugin arrived at the same rule for global settings; the only
  * difference here is which message the app delivers.
  */
-export type ToPlugin = { event: 'testConnection' } | { event: 'discover' } | { event: 'presets' };
+export type ToPlugin = { event: 'testConnection' } | { event: 'discover' } | { event: 'presets' } | { event: 'inputs' };
 
 export type ToInspector =
     | { event: 'connection'; ok: boolean; text: string }
@@ -25,11 +25,20 @@ export type ToInspector =
           presets: { id: number; name: string }[];
           /** Why there is no list, when there is none: no player yet, or one that did not answer. */
           problem?: string;
+      }
+    | {
+          event: 'inputList';
+          inputs: { id: string; name: string }[];
+          problem?: string;
       };
 
 export function isToPlugin(value: unknown): value is ToPlugin {
     const event = (value as { event?: unknown } | null)?.event;
-    return typeof value === 'object' && value !== null && (event === 'testConnection' || event === 'discover' || event === 'presets');
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        (event === 'testConnection' || event === 'discover' || event === 'presets' || event === 'inputs')
+    );
 }
 
 export function isToInspector(value: unknown): value is ToInspector {
@@ -37,6 +46,7 @@ export function isToInspector(value: unknown): value is ToInspector {
     if (typeof message !== 'object' || message === null) return false;
     if (message.event === 'connection') return typeof message.ok === 'boolean' && typeof message.text === 'string';
     if (message.event === 'presetList') return Array.isArray((message as { presets?: unknown }).presets);
+    if (message.event === 'inputList') return Array.isArray((message as { inputs?: unknown }).inputs);
     return message.event === 'players' && Array.isArray(message.players);
 }
 
@@ -53,4 +63,9 @@ export function isConnectionAnswer(value: unknown): value is Extract<ToInspector
 /** A list of players specifically. */
 export function isPlayersAnswer(value: unknown): value is Extract<ToInspector, { event: 'players' }> {
     return isToInspector(value) && value.event === 'players';
+}
+
+/** A player's inputs specifically. */
+export function isInputListAnswer(value: unknown): value is Extract<ToInspector, { event: 'inputList' }> {
+    return isToInspector(value) && value.event === 'inputList';
 }

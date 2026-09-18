@@ -14,6 +14,7 @@ export const PREVIOUS = `${PLUGIN}.previous`;
 export const VOLUME = `${PLUGIN}.volume`;
 export const VOLUME_DIAL = `${PLUGIN}.volume-dial`;
 export const PRESET = `${PLUGIN}.preset`;
+export const INPUT = `${PLUGIN}.input`;
 
 /** Every action this plugin registers. The manifest must declare exactly these. */
-export const ACTION_IDS = [NOW_PLAYING, TRANSPORT, NEXT, PREVIOUS, VOLUME, VOLUME_DIAL, PRESET] as const;
+export const ACTION_IDS = [NOW_PLAYING, TRANSPORT, NEXT, PREVIOUS, VOLUME, VOLUME_DIAL, PRESET, INPUT] as const;

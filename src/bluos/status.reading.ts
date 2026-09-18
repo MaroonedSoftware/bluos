@@ -69,6 +69,8 @@ export interface StatusReading {
     groupName?: string;
     /** Changes whenever the player's presets change, matching `prid` on `/Presets`. */
     prid?: string;
+    /** The input playing, when one is: the same id `/RadioBrowse?service=Capture` lists it under. */
+    inputId?: string;
     /**
      * The skip, back, love and ban a streaming station offers, as URLs to ask.
      *
@@ -154,6 +156,7 @@ export function readStatus(body: string): StatusReading | undefined {
         ...optional('syncStat', text(status, 'syncStat')),
         ...optional('groupName', text(status, 'groupName')),
         ...optional('prid', text(status, 'prid')),
+        ...optional('inputId', text(status, 'inputId')),
         actions: streamActions(status),
         ...optional('shuffle', flag(text(status, 'shuffle'))),
         ...optional('repeat', repeatState(number(status, 'repeat'))),

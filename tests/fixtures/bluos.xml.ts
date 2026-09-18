@@ -124,6 +124,26 @@ export const SPEC_PRESETS = `<presets prid="2">
 <preset id="7" name="1980s Alternative Rock Classics" url="/Load?service=Tidal&amp;id=fd3f797e-a3e9-4de9-a1e2-b5adb6a57cc7" image="/Artwork?service=Tidal&amp;playlistimage=afacfc12-2403-4caf-a5c5-a2af28d811c8"/>
 </presets>`;
 
+/**
+ * Section 11.1's example: a player's own inputs, a cloud service, and a HUB's inputs in a category.
+ *
+ * The PDF wraps long attributes across lines; the URLs are rejoined here, because a line break in the
+ * middle of one is the PDF's, not the player's. The names are left wrapped where the PDF wrapped
+ * them, because a real player could send whitespace there too and the reading has to cope.
+ */
+export const SPEC_INPUTS = `<radiotime service="Capture">
+<item playerName="Tick Tick" text="Bluetooth" inputType="bluetooth" id="input2" URL="Capture%3Abluez%3Abluetooth" image="/images/BluetoothIcon.png" type="audio"/>
+<item playerName="Tick Tick" text="Analog
+Input" inputType="analog" id="input0" URL="Capture%3Aplughw%3Aimxnadadc%2C0%2F48000%2F24%2F2%3Fid%3Dinput0" image="/images/capture/ic_analoginput.png" type="audio"/>
+<item playerName="Tick Tick" text="Optical
+Input" inputType="spdif" id="input1" URL="Capture%3Ahw%3Aimxspdif%2C0%2F1%2F25%2F2%3Fid%3Dinput1" image="/images/capture/ic_opticalinput.png" type="audio"/>
+<item playerName="Tick Tick" text="Spotify" id="Spotify" URL="Spotify%3Aplay" image="/Sources/images/SpotifyIcon.png" serviceType="CloudService" type="audio"/>
+<category icon="/images/CB130Icon.png" text="Test Hub">
+<remoteitem playerName="Test Hub" text="Analog Input" inputType="analog" id="hub-192168114911000-input0" URL="Hub%3A%2F%2F192.168.1.149%3A11000%2Finput0" image="/images/capture/ic_analoginput.png" type="audio"/>
+<remoteitem playerName="Test Hub" text="HDMI ARC" inputType="arc" id="hub-192168114911000-input4" URL="Hub%3A%2F%2F192.168.1.149%3A11000%2Finput4" image="/images/capture/ic_tv.png" type="audio"/>
+</category>
+</radiotime>`;
+
 /** Muted, with the level to come back to. */
 export const MUTED = `<status etag="cc03">
 <state>play</state>

@@ -109,6 +109,21 @@
             ]
         },
         {
+            "UUID": "com.maroonedsoftware.bluos.input",
+            "Name": "Input",
+            "Tooltip": "Switches the player to one of its inputs, such as optical, HDMI or a turntable, and shows when that input is playing.",
+            "Icon": "imgs/actions/input/icon",
+            "Controllers": ["Keypad"],
+            "UserTitleEnabled": false,
+            "States": [
+                {
+                    "Image": "imgs/actions/input/key",
+                    "TitleAlignment": "bottom",
+                    "FontSize": 9
+                }
+            ]
+        },
+        {
             "UUID": "com.maroonedsoftware.bluos.volume",
             "Name": "Volume",
             "Tooltip": "Turns the player up or down, or mutes it. Which one is a setting on the key.",

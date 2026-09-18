@@ -1,5 +1,5 @@
 import { parseAddress } from '../bluos/address.js';
-import { isConnectionAnswer, isPlayersAnswer, isPresetListAnswer } from './inspector.messages.js';
+import { isConnectionAnswer, isInputListAnswer, isPlayersAnswer, isPresetListAnswer } from './inspector.messages.js';
 import { inspectorMessages, playerLabel, settingsFrom } from './inspector.protocol.js';
 
 /**
@@ -29,6 +29,7 @@ type PanelSettings = {
     level?: number;
     press?: 'mute' | 'playPause';
     preset?: number | 'next' | 'previous';
+    input?: string;
     step?: number;
     showLevel?: boolean;
     maxVolume?: number;
@@ -44,6 +45,7 @@ const NOW_PLAYING = 'com.maroonedsoftware.bluos.now-playing';
 const VOLUME = 'com.maroonedsoftware.bluos.volume';
 const VOLUME_DIAL = 'com.maroonedsoftware.bluos.volume-dial';
 const PRESET = 'com.maroonedsoftware.bluos.preset';
+const INPUT = 'com.maroonedsoftware.bluos.input';
 const DEFAULT_STEP = 5;
 const DEFAULT_LEVEL = 30;
 
@@ -80,6 +82,10 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     const presetHint = field<HTMLParagraphElement>('presetHint');
     /** The preset this key was last saved with, so the list can select it once it arrives. */
     let chosenPreset: string = '';
+    const inputGroup = field<HTMLDivElement>('inputGroup');
+    const input = field<HTMLSelectElement>('input');
+    const inputHint = field<HTMLParagraphElement>('inputHint');
+    let chosenInput: string = '';
     const maxVolume = field<HTMLInputElement>('maxVolume');
 
     // The display choices belong to the Now Playing key and to nothing else, so the panel only
@@ -89,6 +95,7 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     limit.hidden = parsed.action !== VOLUME && parsed.action !== VOLUME_DIAL;
     dial.hidden = parsed.action !== VOLUME_DIAL;
     presetGroup.hidden = parsed.action !== PRESET;
+    inputGroup.hidden = parsed.action !== INPUT;
 
     /**
      * Only the field that means something for this direction is shown. A mute key has nothing to step
@@ -116,6 +123,8 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         press.value = settings?.press ?? 'mute';
         chosenPreset = settings?.preset === undefined ? '' : String(settings.preset);
         if (Array.from(preset.options).some(option => option.value === chosenPreset)) preset.value = chosenPreset;
+        chosenInput = settings?.input ?? '';
+        if (Array.from(input.options).some(option => option.value === chosenInput)) input.value = chosenInput;
         showLevel.checked = settings?.showLevel !== false;
         if (!(keepTyping && document.activeElement === maxVolume)) {
             maxVolume.value = settings?.maxVolume === undefined || settings.maxVolume >= 100 ? '' : String(settings.maxVolume);
@@ -161,8 +170,9 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
               };
         const pressing = dial.hidden ? {} : { press: press.value as 'mute' | 'playPause' };
         const choosing = presetGroup.hidden || preset.value === '' ? {} : { preset: presetValue(preset.value) };
+        const switching = inputGroup.hidden || input.value === '' ? {} : { input: input.value };
         const capped = limit.hidden ? {} : typedCap();
-        send(messages.setSettings({ ...settingsFrom(typed), ...shown, ...knob, ...capped, ...pressing, ...choosing }));
+        send(messages.setSettings({ ...settingsFrom(typed), ...shown, ...knob, ...capped, ...pressing, ...choosing, ...switching }));
         if (typed !== '') send(messages.setGlobalSettings({ defaultAddress: typed }));
     };
 
@@ -221,6 +231,16 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         presetHint.textContent = problem ?? '';
     };
 
+    /** Shows the player's inputs, keeping a saved one that has since gone visible as gone. */
+    const listInputs = (inputs: { id: string; name: string }[], problem: string | undefined): void => {
+        input.replaceChildren(new Option('Choose an input…', ''), ...inputs.map(one => new Option(one.name, one.id)));
+        if (chosenInput !== '' && !Array.from(input.options).some(option => option.value === chosenInput)) {
+            input.add(new Option(`${chosenInput} (no longer on the player)`, chosenInput), 1);
+        }
+        input.value = chosenInput;
+        inputHint.textContent = problem ?? '';
+    };
+
     /** Asks the plugin what it makes of the settings it was handed. */
     const check = (): void => {
         const parsedAddress = parseAddress(address.value);
@@ -245,6 +265,7 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         send(messages.getSettings());
         send(messages.discover());
         if (!presetGroup.hidden) send(messages.listPresets());
+        if (!inputGroup.hidden) send(messages.listInputs());
         say('', 'quiet');
     });
 
@@ -257,6 +278,10 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         if (message.event !== 'sendToPropertyInspector') return;
         if (isPlayersAnswer(message.payload)) {
             listPlayers(message.payload.players, message.payload.browsing, message.payload.outcome);
+            return;
+        }
+        if (isInputListAnswer(message.payload)) {
+            listInputs(message.payload.inputs, message.payload.problem);
             return;
         }
         if (isPresetListAnswer(message.payload)) {
@@ -306,6 +331,10 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     maxVolume.addEventListener('change', save);
     level.addEventListener('change', save);
     press.addEventListener('change', save);
+    input.addEventListener('change', () => {
+        chosenInput = input.value;
+        save();
+    });
     preset.addEventListener('change', () => {
         chosenPreset = preset.value;
         save();

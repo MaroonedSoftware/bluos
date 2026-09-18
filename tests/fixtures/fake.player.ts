@@ -27,6 +27,8 @@ export interface FakePlayerState {
     repeat?: 0 | 1 | 2;
     /** Changes whenever the presets do, which is what tells a preset key to read them again. */
     prid?: string;
+    /** The input playing, when one is. */
+    inputId?: string;
     /** A streaming station's actions, as `<action name url>` elements. No `url` means not available. */
     actions?: { name: string; url?: string }[];
 }
@@ -51,6 +53,8 @@ export class FakePlayer {
     private held: Held[] = [];
     /** What `/Presets` answers. Change it along with `prid`, as a real player does. */
     presets = '<presets prid="1"></presets>';
+    /** What `/RadioBrowse?service=Capture` answers. */
+    inputs = '<radiotime service="Capture"></radiotime>';
     /** Set to make the next reads fail, as an unplugged player would. */
     down: 'unreachable' | 'refused' | 'rejected' | 'garbage' | undefined;
 
@@ -97,6 +101,7 @@ export class FakePlayer {
             if (this.down === 'garbage') return new Response('<html><body>Router</body></html>', { status: 200 });
 
             if (url.pathname === '/SyncStatus') return this.syncResponse();
+            if (url.pathname === '/RadioBrowse') return new Response(this.inputs, { status: 200, headers: { 'content-type': 'application/xml' } });
             if (url.pathname === '/Presets') return new Response(this.presets, { status: 200, headers: { 'content-type': 'application/xml' } });
             if (url.pathname !== '/Status') return new Response(`<state>${this.state.state ?? 'play'}</state>`, { status: 200 });
 

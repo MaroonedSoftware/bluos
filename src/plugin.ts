@@ -1,5 +1,7 @@
 import streamDeck from '@elgato/streamdeck';
 
+import { InputAction } from './actions/input.action.js';
+import { InputKeys } from './actions/input.keys.js';
 import { NowPlayingAction } from './actions/now.playing.action.js';
 import { NowPlayingKeys } from './actions/now.playing.js';
 import type { KeysWorld } from './actions/player.keys.js';
@@ -53,6 +55,7 @@ const previous = new PreviousKeys(world);
 const volume = new VolumeKeys(world);
 const dial = new VolumeDial(world, artwork);
 const preset = new PresetKeys(world, artwork);
+const input = new InputKeys(world, artwork);
 
 streamDeck.actions.registerAction(new NowPlayingAction(nowPlaying));
 streamDeck.actions.registerAction(new TransportAction(transport));
@@ -61,9 +64,10 @@ streamDeck.actions.registerAction(new PreviousAction(previous));
 streamDeck.actions.registerAction(new VolumeAction(volume));
 streamDeck.actions.registerAction(new VolumeDialAction(dial));
 streamDeck.actions.registerAction(new PresetAction(preset));
+streamDeck.actions.registerAction(new InputAction(input));
 
 /** Every set of keys, for the events that are about all of them rather than about one key. */
-const everyKey = [nowPlaying, transport, next, previous, volume, dial, preset];
+const everyKey = [nowPlaying, transport, next, previous, volume, dial, preset, input];
 
 const discovery = new Discovery({ browser: bonjourBrowser(), client: { userAgent } });
 
@@ -131,10 +135,34 @@ async function reportPresets(): Promise<void> {
     }
 }
 
+/** Tells the open panel what inputs its key's player has, for the panel's list. */
+async function reportInputs(): Promise<void> {
+    const open = streamDeck.ui.action;
+    if (open === undefined) return;
+    const origin = originFor(await open.getSettings<PlayerSettings>(), global);
+    const tell = (message: ToInspector): Promise<void> => streamDeck.ui.sendToPropertyInspector(message);
+    if (origin === undefined) {
+        await tell({ event: 'inputList', inputs: [], problem: 'Choose a player first, and its inputs will be listed here.' });
+        return;
+    }
+    try {
+        const inputs = await pool.for(origin).client.inputs(AbortSignal.timeout(10_000));
+        await tell({
+            event: 'inputList',
+            // A hub's inputs are named for the hub, because a hub and a player can both have an "Optical Input".
+            inputs: inputs.map(({ id, name, on }) => ({ id, name: on === undefined ? name : `${name} (${on})` })),
+            ...(inputs.length === 0 ? { problem: 'This player has no inputs to switch to, or they are hidden in the BluOS app.' } : {}),
+        });
+    } catch (error) {
+        await tell({ event: 'inputList', inputs: [], problem: describe(classify(error)).sentence });
+    }
+}
+
 streamDeck.ui.onSendToPlugin(ev => {
     if (!isToPlugin(ev.payload)) return;
     if (ev.payload.event === 'discover') reportPlayers();
     else if (ev.payload.event === 'presets') void reportPresets();
+    else if (ev.payload.event === 'inputs') void reportInputs();
     else void reportConnection();
 });
 
