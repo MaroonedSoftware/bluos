@@ -83,4 +83,12 @@ export class FakeDial {
         this.alerts += 1;
         return Promise.resolve();
     }
+
+    /** What the app would list for each gesture. `undefined` is the manifest's own words. */
+    triggers: { rotate?: string; push?: string; touch?: string } | undefined;
+
+    setTriggerDescription(descriptions?: { rotate?: string; push?: string; touch?: string }): Promise<void> {
+        this.triggers = descriptions;
+        return Promise.resolve();
+    }
 }

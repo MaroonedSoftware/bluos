@@ -170,6 +170,38 @@ describe('the volume dial', () => {
         });
     });
 
+    describe('set to play and pause on a press', () => {
+        it('plays or pauses when pressed, and mutes on a tap instead', async () => {
+            const player = new FakePlayer({ volume: 19, state: 'play' });
+            const { dial, pool } = rig(player);
+            dial.appear(new FakeDial('d1'), { address: 'p', press: 'playPause' });
+            await settle();
+
+            dial.down('d1');
+            await dial.up('d1');
+            await settle();
+            expect(player.requests).toContain('/Pause');
+            expect(player.requests.some(path => path.includes('mute='))).toBe(false);
+
+            await dial.tap('d1');
+            await settle();
+            expect(player.requests).toContain('/Volume?mute=1');
+            pool.disposeAll();
+        });
+
+        // A label saying "Mute" on a knob that pauses would be worse than no label at all.
+        it('tells the Stream Deck app what the gestures do now', async () => {
+            const { dial, pool } = rig(new FakePlayer({ volume: 19 }));
+            const knob = new FakeDial('d1');
+            dial.appear(knob, { address: 'p', press: 'playPause' });
+            expect(knob.triggers).toEqual({ rotate: 'Volume', push: 'Play or pause', touch: 'Mute' });
+
+            dial.settingsChanged('d1', { address: 'p', press: 'mute' });
+            expect(knob.triggers).toBeUndefined();
+            pool.disposeAll();
+        });
+    });
+
     it('plays or pauses when the strip is tapped, since mute is already on the knob', async () => {
         const player = new FakePlayer({ volume: 19, state: 'play' });
         const { dial, pool } = rig(player);

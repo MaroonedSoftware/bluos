@@ -7,7 +7,7 @@ import { VolumeModel } from '../volume/volume.model.js';
 import { VolumeWriter } from '../volume/volume.writer.js';
 import { PressWatch } from './dial.arming.js';
 import { PlayerKeys } from './player.keys.js';
-import { capFrom, type VolumeDialSettings } from './volume.options.js';
+import { capFrom, pressFrom, type DialPress, type VolumeDialSettings } from './volume.options.js';
 
 /** How much one detent moves the level, and how much more a press-and-turn moves it. */
 export const DIAL_STEP = 2;
@@ -27,7 +27,10 @@ export const COARSE = 5;
  */
 export class VolumeDial extends PlayerKeys<DialFace> {
     private readonly painter = new DialPainter();
-    private readonly knobs = new Map<string, { model: VolumeModel; writer: VolumeWriter; press: PressWatch; wanted?: string }>();
+    private readonly knobs = new Map<
+        string,
+        { model: VolumeModel; writer: VolumeWriter; press: PressWatch; wanted?: string; pressDoes: DialPress }
+    >();
 
     constructor(
         world: ConstructorParameters<typeof PlayerKeys>[0],
@@ -42,19 +45,32 @@ export class VolumeDial extends PlayerKeys<DialFace> {
             model: new VolumeModel(),
             writer: new VolumeWriter(level => this.write(face.id, level)),
             press: new PressWatch(),
+            pressDoes: 'mute',
         });
     }
 
     override appear(face: DialFace, settings: VolumeDialSettings): void {
         super.appear(face, settings);
-        const knob = this.knobs.get(face.id);
-        if (knob !== undefined) knob.model.cap = capFrom(settings);
+        this.configure(face.id, settings);
     }
 
     override settingsChanged(id: string, settings: VolumeDialSettings): void {
-        const knob = this.knobs.get(id);
-        if (knob !== undefined) knob.model.cap = capFrom(settings);
+        this.configure(id, settings);
         super.settingsChanged(id, settings);
+    }
+
+    /** Takes a dial's own settings: its maximum, and which of mute and play-pause its press does. */
+    private configure(id: string, settings: VolumeDialSettings): void {
+        const knob = this.knobs.get(id);
+        if (knob === undefined) return;
+        knob.model.cap = capFrom(settings);
+        const pressDoes = pressFrom(settings);
+        if (pressDoes === knob.pressDoes) return;
+        knob.pressDoes = pressDoes;
+        // Back to the manifest's own words for the default, and the swapped ones otherwise.
+        void this.face(id)
+            ?.setTriggerDescription(pressDoes === 'mute' ? undefined : { rotate: 'Volume', push: 'Play or pause', touch: 'Mute' })
+            .catch(() => undefined);
     }
 
     protected override onRemove(id: string): void {
@@ -86,15 +102,21 @@ export class VolumeDial extends PlayerKeys<DialFace> {
         this.knobs.get(id)?.press.press();
     }
 
-    /** The knob came up. A press mutes; the end of a press-and-turn does not. */
+    /** The knob came up. A press does what the dial is set to; the end of a press-and-turn does nothing. */
     async up(id: string): Promise<void> {
         const knob = this.knobs.get(id);
         if (knob === undefined || !knob.press.release()) return;
-        await this.mute(id);
+        if (knob.pressDoes === 'mute') await this.mute(id);
+        else await this.playPause(id);
     }
 
-    /** A tap on the touch strip plays or pauses, because mute is already on the knob. */
+    /** A tap on the strip does whichever of mute and play-pause the knob's press does not. */
     async tap(id: string): Promise<void> {
+        if (this.knobs.get(id)?.pressDoes === 'playPause') await this.mute(id);
+        else await this.playPause(id);
+    }
+
+    private async playPause(id: string): Promise<void> {
         const reading = this.readingOf(id);
         const watcher = this.watcherOf(id);
         if (watcher === undefined || reading.status === undefined || reading.stale) {

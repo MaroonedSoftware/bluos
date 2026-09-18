@@ -146,7 +146,13 @@
                     <option value="up">Turns the volume up</option>
                     <option value="down">Turns the volume down</option>
                     <option value="mute">Mutes and unmutes</option>
+                    <option value="set">Sets the volume to a level</option>
                 </select>
+            </div>
+            <div class="row" id="levelRow" hidden>
+                <label for="level">Level</label>
+                <input id="level" type="number" min="0" max="100" step="1" />
+                <span class="unit">out of 100</span>
             </div>
             <div class="row" id="stepRow">
                 <label for="step">Step</label>
@@ -158,6 +164,15 @@
                 <div class="checks">
                     <label class="check"><input id="showLevel" type="checkbox" checked /> The level on the key</label>
                 </div>
+            </div>
+        </div>
+        <div id="dial" class="group" hidden>
+            <div class="row">
+                <label for="press">Pressing</label>
+                <select id="press">
+                    <option value="mute">Mutes, and a tap plays or pauses</option>
+                    <option value="playPause">Plays or pauses, and a tap mutes</option>
+                </select>
             </div>
         </div>
         <div id="limit" class="group" hidden>

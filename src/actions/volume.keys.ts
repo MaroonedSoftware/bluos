@@ -74,7 +74,8 @@ export class VolumeKeys extends KeyControls {
         const held = this.volumes.get(id);
         if (held === undefined) return;
         if (!(await this.step(id))) return;
-        if (held.options.direction === 'mute') return;
+        // Mute and "set" do one thing per press; only up and down have anything to repeat.
+        if (held.options.direction === 'mute' || held.options.direction === 'set') return;
 
         // The OS keyboard's shape: a pause, then a steady repeat.
         held.repeat = {
@@ -147,7 +148,10 @@ export class VolumeKeys extends KeyControls {
             return true;
         }
 
-        const wanted = held.model.nudge(held.options.direction === 'up' ? held.options.step : -held.options.step);
+        const wanted =
+            held.options.direction === 'set'
+                ? held.model.setTo(held.options.level)
+                : held.model.nudge(held.options.direction === 'up' ? held.options.step : -held.options.step);
         if (wanted === undefined) return false;
         // Drawn before it is written, so the key answers the finger rather than the network.
         this.render(id);

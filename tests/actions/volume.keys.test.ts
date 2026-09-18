@@ -199,6 +199,58 @@ describe('the volume key', () => {
         pool.disposeAll();
     });
 
+    describe('a key that sets one level', () => {
+        it('goes straight to that level in one write', async () => {
+            const player = new FakePlayer({ volume: 60 });
+            const { keys, pool } = rig(player);
+            keys.appear(new FakeKey('k1'), { address: 'p', direction: 'set', level: 25 });
+            await settle();
+
+            await keys.down('k1');
+            keys.up('k1');
+            await settle();
+            expect(levels(player)).toEqual([25]);
+            pool.disposeAll();
+        });
+
+        it('does not repeat while held, because there is nothing to repeat', async () => {
+            const player = new FakePlayer({ volume: 60 });
+            const { keys, pool } = rig(player);
+            keys.appear(new FakeKey('k1'), { address: 'p', direction: 'set', level: 25 });
+            await settle();
+
+            await keys.down('k1');
+            await vi.advanceTimersByTimeAsync(5_000);
+            await settle();
+            expect(levels(player)).toEqual([25]);
+            pool.disposeAll();
+        });
+
+        // The maximum is a safety limit, so a key told to go higher than it still stops at it.
+        it('stops at the maximum even when told to go higher', async () => {
+            const player = new FakePlayer({ volume: 10 });
+            const { keys, pool } = rig(player);
+            keys.appear(new FakeKey('k1'), { address: 'p', direction: 'set', level: 80, maxVolume: 40 });
+            await settle();
+
+            await keys.down('k1');
+            await settle();
+            expect(levels(player)).toEqual([40]);
+            pool.disposeAll();
+        });
+
+        it('draws a face of its own', async () => {
+            const { keys, pool } = rig(new FakePlayer({ volume: 19 }));
+            const set = new FakeKey('k1');
+            const up = new FakeKey('k2');
+            keys.appear(set, { address: 'p', direction: 'set', level: 25 });
+            keys.appear(up, { address: 'p', direction: 'up' });
+            await settle();
+            expect(set.image).not.toBe(up.image);
+            pool.disposeAll();
+        });
+    });
+
     describe('refusing', () => {
         it('refuses a fixed output and says so on the key', async () => {
             const player = new FakePlayer({ volume: -1 });

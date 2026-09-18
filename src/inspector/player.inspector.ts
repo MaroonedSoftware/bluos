@@ -25,7 +25,9 @@ type PanelSettings = {
     address?: string;
     showTitle?: boolean;
     showProgress?: boolean;
-    direction?: 'up' | 'down' | 'mute';
+    direction?: 'up' | 'down' | 'mute' | 'set';
+    level?: number;
+    press?: 'mute' | 'playPause';
     step?: number;
     showLevel?: boolean;
     maxVolume?: number;
@@ -41,6 +43,7 @@ const NOW_PLAYING = 'com.maroonedsoftware.bluos.now-playing';
 const VOLUME = 'com.maroonedsoftware.bluos.volume';
 const VOLUME_DIAL = 'com.maroonedsoftware.bluos.volume-dial';
 const DEFAULT_STEP = 5;
+const DEFAULT_LEVEL = 30;
 
 const field = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
@@ -63,6 +66,10 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     const stepRow = field<HTMLDivElement>('stepRow');
     const showLevel = field<HTMLInputElement>('showLevel');
     const limit = field<HTMLDivElement>('limit');
+    const level = field<HTMLInputElement>('level');
+    const levelRow = field<HTMLDivElement>('levelRow');
+    const dial = field<HTMLDivElement>('dial');
+    const press = field<HTMLSelectElement>('press');
     const maxVolume = field<HTMLInputElement>('maxVolume');
 
     // The display choices belong to the Now Playing key and to nothing else, so the panel only
@@ -70,10 +77,15 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     display.hidden = parsed.action !== NOW_PLAYING;
     volume.hidden = parsed.action !== VOLUME;
     limit.hidden = parsed.action !== VOLUME && parsed.action !== VOLUME_DIAL;
+    dial.hidden = parsed.action !== VOLUME_DIAL;
 
-    /** A mute key has nothing to step by, so the field goes rather than sitting there meaning nothing. */
+    /**
+     * Only the field that means something for this direction is shown. A mute key has nothing to step
+     * by, and a key that sets one level has a level rather than a step.
+     */
     const showStep = (): void => {
-        stepRow.hidden = direction.value === 'mute';
+        stepRow.hidden = direction.value === 'mute' || direction.value === 'set';
+        levelRow.hidden = direction.value !== 'set';
     };
 
     /**
@@ -89,6 +101,8 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         showProgress.checked = settings?.showProgress !== false;
         direction.value = settings?.direction ?? 'up';
         step.value = String(settings?.step ?? DEFAULT_STEP);
+        level.value = String(settings?.level ?? DEFAULT_LEVEL);
+        press.value = settings?.press ?? 'mute';
         showLevel.checked = settings?.showLevel !== false;
         if (!(keepTyping && document.activeElement === maxVolume)) {
             maxVolume.value = settings?.maxVolume === undefined || settings.maxVolume >= 100 ? '' : String(settings.maxVolume);
@@ -126,9 +140,15 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         const shown = display.hidden ? {} : { showTitle: showTitle.checked, showProgress: showProgress.checked };
         const knob = volume.hidden
             ? {}
-            : { direction: direction.value as 'up' | 'down' | 'mute', step: Number(step.value) || DEFAULT_STEP, showLevel: showLevel.checked };
+            : {
+                  direction: direction.value as 'up' | 'down' | 'mute' | 'set',
+                  step: Number(step.value) || DEFAULT_STEP,
+                  level: Number.isFinite(Number(level.value)) && level.value.trim() !== '' ? Number(level.value) : DEFAULT_LEVEL,
+                  showLevel: showLevel.checked,
+              };
+        const pressing = dial.hidden ? {} : { press: press.value as 'mute' | 'playPause' };
         const capped = limit.hidden ? {} : typedCap();
-        send(messages.setSettings({ ...settingsFrom(typed), ...shown, ...knob, ...capped }));
+        send(messages.setSettings({ ...settingsFrom(typed), ...shown, ...knob, ...capped, ...pressing }));
         if (typed !== '') send(messages.setGlobalSettings({ defaultAddress: typed }));
     };
 
@@ -245,4 +265,6 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     });
     step.addEventListener('change', save);
     maxVolume.addEventListener('change', save);
+    level.addEventListener('change', save);
+    press.addEventListener('change', save);
 };

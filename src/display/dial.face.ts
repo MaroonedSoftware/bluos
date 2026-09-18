@@ -12,6 +12,13 @@ export interface DialFace {
     setFeedback(feedback: Record<string, unknown>): Promise<void>;
     setSettings(settings: Record<string, unknown>): Promise<void>;
     showAlert(): Promise<void>;
+    /**
+     * What the Stream Deck app says each gesture does, where it lists them for a dial.
+     *
+     * The manifest gives the defaults. A dial whose press has been set to play and pause changes
+     * them, because a label saying "Mute" on a knob that pauses is worse than no label.
+     */
+    setTriggerDescription(descriptions?: { rotate?: string; push?: string; touch?: string; longTouch?: string }): Promise<void>;
 }
 
 /** The least time between two payloads sent to one dial. */

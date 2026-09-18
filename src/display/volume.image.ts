@@ -21,7 +21,11 @@ export function volumeSvg(direction: VolumeDirection, options: { muted: boolean;
             ? `<path d="M92 58l34 34M126 58l-34 34" stroke="${colour}" stroke-width="9" stroke-linecap="round" fill="none"/>`
             : direction === 'up'
               ? waves(colour) + `<path d="M104 26h30M119 11v30" stroke="${colour}" stroke-width="9" stroke-linecap="round" fill="none"/>`
-              : waves(colour) + `<path d="M104 26h30" stroke="${colour}" stroke-width="9" stroke-linecap="round" fill="none"/>`;
+              : direction === 'down'
+                ? waves(colour) + `<path d="M104 26h30" stroke="${colour}" stroke-width="9" stroke-linecap="round" fill="none"/>`
+                : // "set": a target, because this key goes to one level rather than moving by a step.
+                  waves(colour) +
+                  `<circle cx="119" cy="26" r="13" stroke="${colour}" stroke-width="7" fill="none"/><circle cx="119" cy="26" r="4" fill="${colour}"/>`;
 
     // Drawn at three-quarters and sat high, because the Stream Deck app writes the title along the
     // BOTTOM of the key over whatever the image put there. A glyph filling the face edge to edge
