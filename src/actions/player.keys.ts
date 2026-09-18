@@ -13,6 +13,15 @@ export interface KeysWorld {
 
 interface Held<F extends ControlFace> {
     face: F;
+    /**
+     * This control's settings as it last heard them: on appearing, and on every change after.
+     *
+     * Kept here so that a change to the DEFAULT player can re-point controls without asking the
+     * Stream Deck app for anything. It used to ask, behind an await, and then re-point whichever
+     * controls existed by the time the answers came back. A control appearing in between had no
+     * answer, was treated as having no settings, and followed the default instead of its own player.
+     */
+    settings: PlayerSettings;
     /** The player this key is pointed at, or `undefined` while it has none. */
     origin?: string;
     watcher?: StatusWatcher;
@@ -66,7 +75,7 @@ export abstract class PlayerKeys<F extends ControlFace = ControlFace> {
     }
 
     appear(face: F, settings: PlayerSettings): void {
-        this.held.set(face.id, { face, reading: NOTHING });
+        this.held.set(face.id, { face, settings, reading: NOTHING });
         this.onAdd(face);
 
         // A key with no address of its own takes the last player chosen anywhere and WRITES it into
@@ -76,7 +85,10 @@ export abstract class PlayerKeys<F extends ControlFace = ControlFace> {
         const adopt = addressToAdopt(settings, this.world.global());
         if (adopt !== undefined) void face.setSettings({ ...settings, address: adopt }).catch(() => undefined);
 
-        this.point(face.id, adopt === undefined ? settings : { ...settings, address: adopt });
+        const own = adopt === undefined ? settings : { ...settings, address: adopt };
+        const held = this.held.get(face.id);
+        if (held !== undefined) held.settings = own;
+        this.point(face.id, own);
         this.onAppear(face.id);
     }
 
@@ -94,15 +106,23 @@ export abstract class PlayerKeys<F extends ControlFace = ControlFace> {
     settingsChanged(id: string, settings: PlayerSettings): void {
         const held = this.held.get(id);
         if (held === undefined) return;
+        // Remembered before anything else, including the early return below, because a change that
+        // does not move the control can still carry something a subclass or a later default needs.
+        held.settings = settings;
         const wanted = originFor(settings, this.world.global());
         if (wanted === held.origin) return;
         this.letGo(id);
         this.point(id, settings);
     }
 
-    /** The settings every key shares changed, so any key without its own address may have moved. */
-    globalSettingsChanged(settingsOf: (id: string) => PlayerSettings): void {
-        for (const id of this.ids) this.settingsChanged(id, settingsOf(id));
+    /**
+     * The default player changed, so any control without an address of its own may have moved.
+     *
+     * Synchronous, and using each control's own remembered settings, which is the whole of the fix
+     * for a race that used to be here. See `Held.settings`.
+     */
+    globalSettingsChanged(): void {
+        for (const [id, held] of [...this.held]) this.settingsChanged(id, held.settings);
     }
 
     /** Draws one key. Called on every reading it hears, and whenever the action changes something. */

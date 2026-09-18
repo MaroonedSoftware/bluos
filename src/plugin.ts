@@ -91,18 +91,12 @@ async function reportConnection(): Promise<void> {
     await streamDeck.ui.sendToPropertyInspector(message);
 }
 
-streamDeck.settings.onDidReceiveGlobalSettings<GlobalSettings>(async ev => {
+streamDeck.settings.onDidReceiveGlobalSettings<GlobalSettings>(ev => {
     global = ev.settings;
     // A key with no address of its own follows the default, so moving the default moves those keys.
-    // Each key's own settings are asked for rather than remembered, because the app is what holds
-    // them, and a key that has since been given its own address must not be dragged along.
-    const settings = new Map<string, PlayerSettings>();
-    await Promise.all(
-        streamDeck.actions.toArray().map(async candidate => {
-            if (candidate.isKey()) settings.set(candidate.id, await candidate.getSettings<PlayerSettings>());
-        }),
-    );
-    for (const keys of everyKey) keys.globalSettingsChanged(id => settings.get(id) ?? {});
+    // Each key class remembers its own keys' settings, so this asks the app for nothing and cannot
+    // race a key appearing while it runs.
+    for (const keys of everyKey) keys.globalSettingsChanged();
 });
 
 streamDeck.ui.onSendToPlugin(ev => {

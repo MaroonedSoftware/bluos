@@ -156,6 +156,54 @@ describe('every key has its own player', () => {
     });
 });
 
+describe('the default player changing', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('moves a key that has no player of its own', async () => {
+        const { fetch } = twoPlayers();
+        const { keys, pool, global } = rig(fetch, { defaultAddress: 'office' });
+        const key = new FakeKey('k1');
+        // Appearing with nothing: it adopts Office, and then its settings are what the app sends back.
+        keys.appear(key, {});
+        await settle();
+        keys.settingsChanged('k1', {});
+        global.defaultAddress = 'kitchen';
+        keys.globalSettingsChanged();
+        await settle();
+        expect(key.title).toBe('Radio 6\nMary Anne Hobbs');
+        pool.disposeAll();
+    });
+
+    // The bug this replaced: the handler asked the app for every key's settings behind an await, and
+    // a key it had no answer for was treated as having none, so it followed the default instead.
+    it('leaves a key with its own player exactly where it is', async () => {
+        const { fetch } = twoPlayers();
+        const { keys, pool, global } = rig(fetch, { defaultAddress: 'office' });
+        const key = new FakeKey('k1');
+        keys.appear(key, { address: 'kitchen' });
+        await settle();
+        global.defaultAddress = 'office';
+        keys.globalSettingsChanged();
+        await settle();
+        expect(key.title).toBe('Radio 6\nMary Anne Hobbs');
+        pool.disposeAll();
+    });
+
+    it('needs nothing from outside to do it, so a key appearing meanwhile cannot be missed', async () => {
+        const { fetch } = twoPlayers();
+        const { keys, pool, global } = rig(fetch);
+        const late = new FakeKey('k2');
+        keys.appear(new FakeKey('k1'), { address: 'office' });
+        global.defaultAddress = 'office';
+        keys.appear(late, { address: 'kitchen' });
+        keys.globalSettingsChanged();
+        await settle();
+        expect(late.title).toBe('Radio 6\nMary Anne Hobbs');
+        pool.disposeAll();
+    });
+});
+
 describe('a key with no player of its own', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());

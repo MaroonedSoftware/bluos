@@ -244,6 +244,16 @@ pointing it locally as well is what makes it draw now instead of a round trip la
 already watching draws immediately rather than sitting on the manifest's own picture until the next
 change.
 
+**Each key remembers its own settings, so a change to the default re-points keys without asking
+the app for anything.** It used to ask: the global-settings handler fetched every key's settings
+behind an `await`, then re-pointed whichever keys existed once the answers came back. A key that
+appeared in between had no answer, was treated as having no settings, and followed the DEFAULT
+instead of its own player. With one player that shows as "No player"; with two it is worse, because
+a Kitchen key silently shows Office. On a deck the window is startup, when the app sends
+`willAppear` for every visible key at about the same moment as the global settings. It surfaced as a
+one-in-six flake under Node 22 and a test now forces the interleaving: it failed three times out of
+three before the fix. The handler is synchronous now, which removes the race rather than narrowing it.
+
 **A subscription checks it is still the right one before it draws.** A key that moves to another
 player while a reading is in flight would otherwise take the old player's answer.
 
@@ -303,6 +313,10 @@ ever connects. From the test's side it is indistinguishable from a slow start, w
 the timeout appeared to help and did not. `FakeDeck` now copies `manifest.json` into a throwaway
 directory and launches from there. It also keeps test runs out of the log of whatever real plugin
 happens to be installed, which they were quietly polluting.
+
+**A `FakeDeck` timeout reports what the plugin said, not just that it spoke.** "setTitle, setTitle"
+says a key drew twice; `setTitle(""), setTitle("No player")` says it lost its player, which is what
+turned an unexplained flake into the race described above.
 
 **The bundle tests still have generous timeouts**, because a Node process starting while sixteen
 other test files run is genuinely slow. `testTimeout` is 20 seconds and `FakeDeck`'s own is 15,
@@ -364,6 +378,13 @@ pnpm deck:dev     # turn on developer mode, once per machine
 pnpm deck:link    # symlink the plugin folder into the Stream Deck app
 pnpm deck:restart # reload the running plugin after a build
 ```
+
+**CI has been run locally, step by step, before it ever ran on GitHub.** `actionlint` passes on
+both workflows (it is installed here), and every step of `build.yml` exits 0 in order. The suite
+passes under Node 22 and Node 26, which bracket the runner's 24. `packageManager` in package.json is
+what tells `pnpm/action-setup` which pnpm to install; without it, or a `version:` on the action, the
+first run fails with "No pnpm version is specified". Setting both is also an error, so it is only
+the field.
 
 **`streamdeck validate` fetches the manifest's `URL` and `SupportURL`**, which is why it is not part
 of `pnpm test`. Two different things come of that, and they were conflated once already:

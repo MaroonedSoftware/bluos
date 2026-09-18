@@ -66,6 +66,18 @@ export const DEVICE = {
     type: 7,
 } as const;
 
+/**
+ * One message as a timeout reports it: the event, and for the few that carry something a test
+ * waits on, what it carried. "setTitle, setTitle" says a key drew twice; it takes the titles to say
+ * that it drew "No player" when a track was expected.
+ */
+function describeMessage(message: FromPlugin): string {
+    const payload = message.payload as { title?: unknown; state?: unknown } | undefined;
+    if (message.event === 'setTitle') return `setTitle(${JSON.stringify(payload?.title ?? '')})`;
+    if (message.event === 'setState') return `setState(${String(payload?.state)})`;
+    return message.event;
+}
+
 export class FakeDeck {
     private readonly server: WebSocketServer;
     private readonly options: Required<FakeDeckOptions>;
@@ -228,7 +240,7 @@ export class FakeDeck {
                 this.waiting = this.waiting.filter(w => w.resolve !== settle);
                 reject(
                     new Error(
-                        `Waited ${this.options.timeoutMs}ms for a message that never came. Got: ${this.received.map(m => m.event).join(', ') || 'nothing'}${this.faults ? `\nstderr: ${this.faults}` : ''}`,
+                        `Waited ${this.options.timeoutMs}ms for a message that never came. Got: ${this.received.map(describeMessage).join(', ') || 'nothing'}${this.faults ? `\nstderr: ${this.faults}` : ''}`,
                     ),
                 );
             }, this.options.timeoutMs);

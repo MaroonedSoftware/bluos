@@ -84,6 +84,34 @@ describe('the built plugin', () => {
         expect(deck.faults).toBe('');
     });
 
+    // A key that appears while the plugin is handling a change to the default player must keep its
+    // own player. The handler used to gather every key's settings behind an await and then re-point
+    // whichever keys existed afterwards, so a key arriving in between was re-pointed with no settings
+    // at all and sat on "No player" until somebody touched it. On a real deck that window is startup.
+    it('does not lose a key that appears while the default player is changing', async () => {
+        player = await servePlayer();
+        deck = await FakeDeck.launch();
+        const nowPlaying = (m: { event: string; payload?: unknown }): boolean =>
+            m.event === 'setTitle' && String((m.payload as { title?: string })?.title ?? '').includes('Deadair');
+
+        deck.appear('key-a', NOW_PLAYING, { address: player.address });
+        await deck.next(nowPlaying);
+
+        // The default changes to somewhere ELSE, and a second key appears before the plugin has
+        // finished with that. It has to be somewhere else: a key that lost its own settings falls
+        // back to the default, so a default on the same player would hide the bug entirely. With
+        // two players that is worse than "No player", because the key silently follows the wrong one.
+        deck.panelWritesGlobal({ defaultAddress: '127.0.0.1:1' });
+        const mark = deck.mark;
+        deck.appear('key-b', NOW_PLAYING, { address: player.address });
+
+        const drawn = await deck.next(m => m.context === 'key-b' && nowPlaying(m), mark);
+        expect(drawn.context).toBe('key-b');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const lastForB = deck.received.filter(m => m.context === 'key-b' && m.event === 'setTitle').at(-1);
+        expect((lastForB?.payload as { title?: string })?.title).toContain('Deadair');
+    });
+
     it('takes a key appearing and disappearing without complaint', async () => {
         player = await servePlayer();
         deck = await FakeDeck.launch();
