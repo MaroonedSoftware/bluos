@@ -4,7 +4,7 @@ import { readInputs, type InputSource } from './inputs.reading.js';
 import { readPresets, type PresetList } from './presets.reading.js';
 import { readStatus, type StatusReading } from './status.reading.js';
 import { readSyncStatus, type SyncReading } from './sync.reading.js';
-import { attribute, parseXml, toNumber } from './xml.js';
+import { attribute, flag, parseXml, toNumber } from './xml.js';
 
 /**
  * How long a long-poll may ask the player to hold, in seconds.
@@ -43,6 +43,10 @@ export interface CommandAnswer {
     state?: string;
     volume?: number;
     muted?: boolean;
+    /** From `/Shuffle`, which answers with the queue and its new shuffle state. */
+    shuffle?: boolean;
+    /** From `/Repeat`: 0 repeats the queue, 1 one track, 2 is off. */
+    repeat?: 0 | 1 | 2;
 }
 
 export interface ClientOptions {
@@ -129,6 +133,15 @@ export class BluOsClient {
             return {
                 ...(level === undefined ? {} : { volume: level }),
                 ...(attribute(root, 'mute') === undefined ? {} : { muted: attribute(root, 'mute') === '1' }),
+            };
+        }
+        if (root?.name === 'playlist') {
+            // `/Shuffle` and `/Repeat` answer with the queue, carrying the state they left it in.
+            const shuffle = flag(attribute(root, 'shuffle'));
+            const repeat = toNumber(attribute(root, 'repeat'));
+            return {
+                ...(shuffle === undefined ? {} : { shuffle }),
+                ...(repeat === 0 || repeat === 1 || repeat === 2 ? { repeat } : {}),
             };
         }
         const state = root?.name === 'state' ? root.text.trim() : undefined;

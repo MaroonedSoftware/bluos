@@ -159,7 +159,14 @@ export class StatusWatcher {
     private note(answer: CommandAnswer): void {
         const status = this.reading.status;
         if (status === undefined) return;
-        if (answer.state === undefined && answer.volume === undefined && answer.muted === undefined) return;
+        if (
+            answer.state === undefined &&
+            answer.volume === undefined &&
+            answer.muted === undefined &&
+            answer.shuffle === undefined &&
+            answer.repeat === undefined
+        )
+            return;
         this.publish({
             ...this.reading,
             status: {
@@ -167,6 +174,8 @@ export class StatusWatcher {
                 ...(answer.state === undefined ? {} : { state: answer.state, playing: answer.state === 'play' || answer.state === 'stream' }),
                 ...(answer.volume === undefined ? {} : { volume: answer.volume }),
                 ...(answer.muted === undefined ? {} : { muted: answer.muted }),
+                ...(answer.shuffle === undefined ? {} : { shuffle: answer.shuffle }),
+                ...(answer.repeat === undefined ? {} : { repeat: answer.repeat }),
             },
         });
     }

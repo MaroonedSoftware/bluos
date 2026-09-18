@@ -237,6 +237,26 @@ row of input keys reads like the selector on the front of an amplifier. Inputs c
 nothing in `/Status` says when they do, so the list is read once per player, and once more when a key
 asks for an input the list does not have.
 
+## Shuffle, repeat and love
+
+**Shuffle and repeat only mean something on a queue.** The specification: with a `streamUrl`,
+"shuffle and repeat are not relevant and should be removed from any UI if possible". A key cannot be
+removed or greyed out, so it says "Stream" and declines the press, as Next does on a station that
+offers nothing.
+
+**The repeat numbering is the player's, and it is not the obvious one**: 0 repeats the whole queue,
+1 repeats one track, 2 is off. The manifest's three states are in that same order so the reported
+value is the state index. A press steps off, queue, track, off. A test pins every value.
+
+**Both send the state they mean, never a toggle**, from what the player last reported, and both
+update from the command's own answer: `/Shuffle` and `/Repeat` answer with a `<playlist>` element
+carrying the new state as an attribute, which the client reads and the watcher folds in.
+
+**Love uses the station's own URL**, the same `<actions>` block that lets Next skip on a stream. Most
+sources offer nothing of the kind, and the heart goes faint to say so before it is pressed. Ban, the
+same section's other action, is deliberately not offered: it skips the track and tells the service
+never to play it again, which is too much to hang off a key pressed without looking.
+
 ## A maximum volume
 
 **Every volume control can be capped, and it is a safety limit rather than a preference.** On an

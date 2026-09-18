@@ -124,6 +124,71 @@
             ]
         },
         {
+            "UUID": "com.maroonedsoftware.bluos.shuffle",
+            "Name": "Shuffle",
+            "Tooltip": "Turns shuffle on or off for the player's queue.",
+            "Icon": "imgs/actions/shuffle/icon",
+            "Controllers": ["Keypad"],
+            "DisableAutomaticStates": true,
+            "States": [
+                {
+                    "Name": "Off",
+                    "Image": "imgs/actions/shuffle/off",
+                    "TitleAlignment": "bottom"
+                },
+                {
+                    "Name": "On",
+                    "Image": "imgs/actions/shuffle/on",
+                    "TitleAlignment": "bottom"
+                }
+            ]
+        },
+        {
+            "UUID": "com.maroonedsoftware.bluos.repeat",
+            "Name": "Repeat",
+            "Tooltip": "Steps through repeating the whole queue, one track, and off.",
+            "Icon": "imgs/actions/repeat/icon",
+            "Controllers": ["Keypad"],
+            "DisableAutomaticStates": true,
+            "States": [
+                {
+                    "Name": "Queue",
+                    "Image": "imgs/actions/repeat/queue",
+                    "TitleAlignment": "bottom"
+                },
+                {
+                    "Name": "Track",
+                    "Image": "imgs/actions/repeat/track",
+                    "TitleAlignment": "bottom"
+                },
+                {
+                    "Name": "Off",
+                    "Image": "imgs/actions/repeat/off",
+                    "TitleAlignment": "bottom"
+                }
+            ]
+        },
+        {
+            "UUID": "com.maroonedsoftware.bluos.love",
+            "Name": "Love",
+            "Tooltip": "Marks the playing track as liked, on a streaming station that offers it.",
+            "Icon": "imgs/actions/love/icon",
+            "Controllers": ["Keypad"],
+            "DisableAutomaticStates": true,
+            "States": [
+                {
+                    "Name": "Love",
+                    "Image": "imgs/actions/love/key",
+                    "TitleAlignment": "bottom"
+                },
+                {
+                    "Name": "Unavailable",
+                    "Image": "imgs/actions/love/unavailable",
+                    "TitleAlignment": "bottom"
+                }
+            ]
+        },
+        {
             "UUID": "com.maroonedsoftware.bluos.volume",
             "Name": "Volume",
             "Tooltip": "Turns the player up or down, or mutes it. Which one is a setting on the key.",
