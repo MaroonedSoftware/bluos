@@ -5,6 +5,7 @@
     "description": "A BluOS player on a Stream Deck: what is playing, the transport, and the volume.",
     "license": "MIT",
     "type": "module",
+    "packageManager": "pnpm@11.23.0",
     "scripts": {
         "build": "tsc --noEmit && tsup",
         "typecheck": "tsc --noEmit -p tsconfig.tests.json",
