@@ -426,6 +426,16 @@ trust store is in a state it dislikes. It arrives before Node runs a line of the
 asserting on raw stderr would fail on such a machine and pass in CI, which is the wrong way round.
 Nothing else is hidden.
 
+### On a Stream Deck
+
+Robert ran it linked, in developer mode, against Office (the NAD M10 V2 below) on 2026-09-18, and
+reports that it works. Everything before that date was checked against fakes, a loopback player
+serving bytes captured from the M10, and the built bundle driven through `FakeDeck`.
+
+Still not confirmed individually, because they are the parts no fake can settle: that the cover
+draws on the dial's touch strip (a raster in a layout `pixmap`, which the sibling plugin never
+measured either), and the packed `.streamDeckPlugin` installed by double-click rather than linked.
+
 ### Measured on a real player
 
 Against an **NAD M10 V2** named "Office" at 192.168.1.234, on 2026-09-17, with `tools/capture.mjs`:
