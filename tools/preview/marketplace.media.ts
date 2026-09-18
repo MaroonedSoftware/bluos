@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { nowPlayingSvg } from '../../src/display/key.image.js';
+import { inputSvg } from '../../src/display/input.image.js';
 import { volumeSvg } from '../../src/display/volume.image.js';
 
 /**
@@ -116,6 +117,14 @@ const pictures: Record<string, string> = {
             at(volumeSvg('mute'), ['Muted']),
             at(nowPlayingSvg({ cover: purple, step: 8, stale: false, shade: true }), ['Office', 'NAD M10 V2']),
         ]) + caption('The volume, on a key or a dial', 'Hold to run, press the dial to mute, or turn it on a Stream Deck +'),
+    ),
+    'gallery-4-presets.svg': frame(
+        row(250, [
+            at(nowPlayingSvg({ cover: teal, stale: false, shade: true }), ['Serenity']),
+            at(nowPlayingSvg({ cover: purple, stale: false, shade: true }), ['Morning Jazz']),
+            at(inputSvg({ active: true, stale: false }), ['HDMI ARC']),
+            at(inputSvg({ active: false, stale: false }), ['Turntable']),
+        ]) + caption('Presets and inputs', 'Each preset with its own artwork, and inputs that light up while they play'),
     ),
     'thumbnail.svg': frame(
         row(250, [

@@ -3,17 +3,24 @@
 Control a BluOS player (Bluesound, NAD) from an Elgato Stream Deck.
 
 - **Now playing** shows the cover, two lines of track information, and how far through it is.
-- **Play or pause**, **next track** and **previous track** drive the transport.
-- **Volume** turns the player up or down, or mutes it, from a key.
+- **Now playing strip** spreads the same across all four dials of a Stream Deck +.
+- **Play or pause**, **next** and **previous** drive the transport, using a radio station's own skip
+  where it offers one.
+- **Preset** plays one of the player's presets, showing its name and artwork.
+- **Input** switches to optical, HDMI and so on, and lights up while its input is playing.
+- **Volume** turns the player up or down, mutes it, or sets a level, from a key.
 - **Volume dial** puts the volume on a Stream Deck + knob, with the cover on the touch strip.
+- **Shuffle**, **repeat** and **love** where the source supports them.
+
+Every volume control can be given a maximum.
 
 Each key is pointed at a player by address, found for you on the network or typed in. Two keys can
 name two different players, so a deck can hold the kitchen and the living room at once.
 
 ## Status
 
-Early. The scaffold builds, registers with the Stream Deck app and is tested against the real
-bundle; the keys themselves are being written. See `CLAUDE.md` for the decisions behind it.
+Working, and tested on a Stream Deck + against an NAD M10 V2. See `CLAUDE.md` for the decisions
+behind it, including what has and has not been checked on real hardware.
 
 ## Building it
 
