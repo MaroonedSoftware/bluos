@@ -256,6 +256,7 @@ describe('the words a Now Playing key shows', () => {
                     fixedVolume: false,
                     muted: false,
                     canSeek: false,
+                    actions: {},
                     queued: false,
                 },
             }),
@@ -269,7 +270,10 @@ describe('the words a Now Playing key shows', () => {
 
     it('falls back to the state when the player sent no lines at all', () => {
         expect(
-            wordsFor({ stale: false, status: { playing: false, state: 'stop', fixedVolume: false, muted: false, canSeek: false, queued: true } }),
+            wordsFor({
+                stale: false,
+                status: { playing: false, state: 'stop', fixedVolume: false, muted: false, canSeek: false, actions: {}, queued: true },
+            }),
         ).toBe('stop');
     });
 });

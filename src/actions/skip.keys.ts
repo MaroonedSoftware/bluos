@@ -1,4 +1,5 @@
 import { describe } from '../bluos/connection.failure.js';
+import type { StatusReading } from '../bluos/status.reading.js';
 import { refuse, runCommand } from './command.outcome.js';
 import { KeyControls } from './key.controls.js';
 
@@ -8,11 +9,12 @@ export type Direction = 'next' | 'previous';
 /**
  * Next track and previous track.
  *
- * **They refuse a press while the player is on a stream, and that is the specification's rule
- * rather than a nicety.** A `streamUrl` in `/Status` means "the play queue is not the source of the
- * current audio" and that "next and previous are not available". Internet radio is the ordinary
- * case, not an edge one: the player this was built against was on a stream every time it was
- * looked at.
+ * Playing a queue, they send `/Skip` and `/Back`. On a stream the queue is not the source, and the
+ * specification says "next and previous are not available (but see also actions)". The part in
+ * brackets matters: a station that CAN skip says so with an `<action name="skip" url="...">`, and
+ * the key asks that URL. Only a stream that offers nothing is refused.
+ *
+ * An earlier version refused every stream, having quoted the specification without its brackets.
  *
  * Where a screen would disable the control, a Stream Deck key cannot be greyed out, so it takes the
  * press and declines it. The warning triangle says something happened; the log says what.
@@ -33,24 +35,32 @@ export abstract class SkipKeys extends KeyControls {
             return;
         }
 
-        if (!status.queued) {
-            await refuse(face, this.world.log, `There is no ${this.direction} track: the player is on a stream rather than playing a queue.`);
+        const target = this.target(status);
+        if (target === undefined) {
+            await refuse(face, this.world.log, `There is no ${this.direction} track: this station does not offer one.`);
             return;
         }
 
-        await runCommand(
-            face,
-            () => watcher.command((client, signal) => client.command(this.direction === 'next' ? '/Skip' : '/Back', {}, signal)),
-            this.world.log,
-        );
+        await runCommand(face, () => watcher.command((client, signal) => client.command(target, {}, signal)), this.world.log);
+    }
+
+    /** Where to ask: the queue's own verb, the station's action, or nowhere. */
+    private target(status: StatusReading): string | undefined {
+        if (status.queued) return this.direction === 'next' ? '/Skip' : '/Back';
+        return this.direction === 'next' ? status.actions.skip : status.actions.back;
     }
 
     protected override render(id: string): void {
         const reading = this.readingOf(id);
         // A key that cannot do anything says so, rather than looking ready and then refusing. It is
         // still pressable, because the Stream Deck has no disabled state for a key to sit in.
+        const status = reading.status;
         const title =
-            reading.failure !== undefined ? describe(reading.failure).title : reading.status !== undefined && !reading.status.queued ? 'Stream' : '';
+            reading.failure !== undefined
+                ? describe(reading.failure).title
+                : status !== undefined && this.target(status) === undefined
+                  ? 'Stream'
+                  : '';
         this.paint(id, { title });
     }
 

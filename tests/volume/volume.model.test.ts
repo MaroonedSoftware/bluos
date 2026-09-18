@@ -8,6 +8,7 @@ const status = (over: Partial<StatusReading> = {}): StatusReading => ({
     fixedVolume: false,
     muted: false,
     canSeek: false,
+    actions: {},
     queued: true,
     ...over,
 });

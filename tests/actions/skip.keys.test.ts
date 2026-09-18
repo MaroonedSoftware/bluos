@@ -56,7 +56,7 @@ describe('Next and Previous', () => {
             await next.press('k1');
             expect(key.alerts).toBe(1);
             expect(player.requests.length).toBe(asked);
-            expect(logs.at(-1)).toContain('no next track');
+            expect(logs.at(-1)).toContain('There is no next track');
             pool.disposeAll();
         });
 
@@ -65,7 +65,7 @@ describe('Next and Previous', () => {
             previous.appear(new FakeKey('k1'), { address: 'p' });
             await settle();
             await previous.press('k1');
-            expect(logs.at(-1)).toContain('no previous track');
+            expect(logs.at(-1)).toContain('There is no previous track');
             pool.disposeAll();
         });
 
@@ -77,6 +77,55 @@ describe('Next and Previous', () => {
             next.appear(key, { address: 'p' });
             await settle();
             expect(key.title).toBe('Stream');
+            pool.disposeAll();
+        });
+    });
+
+    // The specification: "next and previous are not available (but see also actions)". An earlier
+    // version dropped the brackets and refused every stream, including ones that could skip.
+    describe('while the player is on a station that CAN skip', () => {
+        const station = (): FakePlayer =>
+            new FakePlayer({
+                state: 'stream',
+                streamUrl: 'Slacker:station/1',
+                totlen: undefined,
+                actions: [{ name: 'back' }, { name: 'skip', url: '/Action?service=Slacker&skip=4799148' }],
+            });
+
+        it('asks the station’s own skip URL', async () => {
+            const player = station();
+            const { next, pool } = rig(player);
+            const key = new FakeKey('k1');
+            next.appear(key, { address: 'p' });
+            await settle();
+
+            await next.press('k1');
+            expect(player.requests).toContain('/Action?service=Slacker&skip=4799148');
+            expect(player.requests.some(path => path.startsWith('/Skip'))).toBe(false);
+            expect(key.alerts).toBe(0);
+            pool.disposeAll();
+        });
+
+        it('looks ready rather than saying Stream', async () => {
+            const { next, pool } = rig(station());
+            const key = new FakeKey('k1');
+            next.appear(key, { address: 'p' });
+            await settle();
+            expect(key.title).toBe('');
+            pool.disposeAll();
+        });
+
+        // The same station offers no back, which it says with an action that has no url.
+        it('still refuses the direction the station does not offer', async () => {
+            const { previous, pool, logs } = rig(station());
+            const key = new FakeKey('k1');
+            previous.appear(key, { address: 'p' });
+            await settle();
+            expect(key.title).toBe('Stream');
+
+            await previous.press('k1');
+            expect(key.alerts).toBe(1);
+            expect(logs.at(-1)).toContain('does not offer one');
             pool.disposeAll();
         });
     });

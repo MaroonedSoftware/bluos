@@ -1,4 +1,19 @@
-import { attribute, flag, number, parseXml, text, type XmlElement } from './xml.js';
+import { attribute, child, children, flag, number, parseXml, text, type XmlElement } from './xml.js';
+
+/**
+ * What a streaming radio station lets the player do, and where to ask for it.
+ *
+ * Section 4.8 of the specification: "Streaming radio stations do not load tracks into the play
+ * queue. Instead, they provide a URL that you can use to accomplish the desired function." Each is
+ * present only when the station offers it. An `<action name="back"/>` with no `url` is the player
+ * saying back is NOT available here, and it is read as absent.
+ */
+export interface StreamActions {
+    skip?: string;
+    back?: string;
+    love?: string;
+    ban?: string;
+}
 
 /**
  * What `/Status` says, narrowed to the parts a key draws or acts on.
@@ -52,6 +67,39 @@ export interface StatusReading {
     syncStat?: string;
     /** The group's name when this player leads one. */
     groupName?: string;
+    /**
+     * The skip, back, love and ban a streaming station offers, as URLs to ask.
+     *
+     * This is why a stream does not simply mean "no next track". The specification's own line is
+     * "next and previous are not available (but see also actions)", and an earlier reading of it
+     * dropped the part in brackets, so every stream refused Next even where the station would have
+     * skipped. Radio Paradise, Slacker and Amazon's stations are the specification's examples.
+     */
+    actions: StreamActions;
+    /** 0 is off, 1 is on. Irrelevant on a stream, where the specification says to leave it out of the UI. */
+    shuffle?: boolean;
+    /**
+     * The player's own repeat state, which is NOT in the order anybody would guess: 0 repeats the
+     * whole queue, 1 repeats one track, and 2 is off.
+     */
+    repeat?: 0 | 1 | 2;
+}
+
+/** The actions in a `<actions>` element, keeping only the ones that carry somewhere to ask. */
+function streamActions(status: XmlElement): StreamActions {
+    const found: StreamActions = {};
+    for (const action of children(child(status, 'actions'), 'action')) {
+        const name = attribute(action, 'name');
+        const url = attribute(action, 'url');
+        if (url === undefined) continue;
+        if (name === 'skip' || name === 'back' || name === 'love' || name === 'ban') found[name] = url;
+    }
+    return found;
+}
+
+/** A repeat state, or `undefined` for anything the specification does not define. */
+function repeatState(value: number | undefined): 0 | 1 | 2 | undefined {
+    return value === 0 || value === 1 || value === 2 ? value : undefined;
 }
 
 /** A state in which audio is playing. `stream` is what internet radio reports, and counts. */
@@ -103,6 +151,9 @@ export function readStatus(body: string): StatusReading | undefined {
         ...optional('service', text(status, 'service')),
         ...optional('syncStat', text(status, 'syncStat')),
         ...optional('groupName', text(status, 'groupName')),
+        actions: streamActions(status),
+        ...optional('shuffle', flag(text(status, 'shuffle'))),
+        ...optional('repeat', repeatState(number(status, 'repeat'))),
     };
 }
 

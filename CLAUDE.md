@@ -43,9 +43,15 @@ seconds or so and never faster than 10 seconds." This plugin asks for 60, which 
 rather than 100: a dead socket is only discovered at the deadline, and a key that shows a confident
 reading from an unplugged player is the thing the stale marker exists to prevent.
 
-**`streamUrl` means next and previous do not exist.** Its presence says the play queue is not the
-source, that shuffle and repeat are irrelevant, and that "next and previous are not available". On
-internet radio those keys refuse the press rather than firing `/Skip` into nothing.
+**`streamUrl` means the queue is not the source, and next and previous come from the station
+instead.** The specification's line is "next and previous are not available (but see also
+actions)", and the part in brackets is the point. Section 4.8: a streaming station that can skip,
+go back, love or ban says so with `<action name="skip" url="...">` elements in `/Status`, and the
+client asks that URL. An `<action>` with no `url` is the station saying that one is NOT available.
+An earlier version of this plugin quoted the line without its brackets and refused Next on every
+stream, including stations that would have skipped; the review of other plugins is what found it.
+Now the keys ask `/Skip` and `/Back` on a queue, the station's URL on a stream that offers one, and
+refuse only a stream that offers nothing.
 
 ### Smaller traps, written down before they are rediscovered
 
@@ -137,12 +143,11 @@ the sibling plugin needs. It folds in only what the answer carried, and does not
 the first reading has arrived, because inventing one would have a key drawing a track it has never
 been told about.
 
-**Next and Previous refuse a press while the player is on a stream.** The specification says a
-`streamUrl` means the play queue is not the source and that "next and previous are not available".
-This is the ordinary case rather than an edge one: the player this was built against was streaming
-every time it was looked at. Where a screen would grey the control out, a Stream Deck key cannot be
-disabled, so it says "Stream" on its face, takes the press, and declines it. Doing nothing at all
-would read as the plugin being broken.
+**Next and Previous refuse a press only on a stream that offers nothing.** On a stream they ask the
+station's own skip or back URL when it offers one (see the specification section above). Where it
+does not, as with the TuneIn stream the player this was built against was on, a Stream Deck key
+cannot be greyed out, so it says "Stream" on its face, takes the press, and declines it. Doing
+nothing at all would read as the plugin being broken.
 
 **A stale reading refuses a press too.** A reading from before the player stopped answering says
 nothing about what a press would do now.

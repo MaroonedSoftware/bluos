@@ -23,6 +23,10 @@ export interface FakePlayerState {
     totlen?: number;
     streamUrl?: string;
     image?: string;
+    shuffle?: 0 | 1;
+    repeat?: 0 | 1 | 2;
+    /** A streaming station's actions, as `<action name url>` elements. No `url` means not available. */
+    actions?: { name: string; url?: string }[];
 }
 
 interface Held {
@@ -108,11 +112,19 @@ export class FakePlayer {
     }
 
     private statusResponse(): Response {
-        const fields = Object.entries({ ...this.state, syncStat: this.sync.etag ?? '1' })
+        const { actions, ...flat } = this.state;
+        const fields = Object.entries({ ...flat, syncStat: this.sync.etag ?? '1' })
             .filter(([, value]) => value !== undefined)
             .map(([name, value]) => `<${name}>${value}</${name}>`)
             .join('\n');
-        return new Response(`<status etag="${this.etag}">\n${fields}\n</status>`, { status: 200, headers: { 'content-type': 'application/xml' } });
+        const acts =
+            actions === undefined
+                ? ''
+                : `\n<actions>${actions.map(a => `<action name="${a.name}"${a.url === undefined ? '' : ` url="${a.url}"`}/>`).join('')}</actions>`;
+        return new Response(`<status etag="${this.etag}">\n${fields}${acts}\n</status>`, {
+            status: 200,
+            headers: { 'content-type': 'application/xml' },
+        });
     }
 
     private syncResponse(): Response {

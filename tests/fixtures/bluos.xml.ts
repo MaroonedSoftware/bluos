@@ -93,6 +93,27 @@ export const RADIO = `<status etag="bb02">
 <syncStat>9</syncStat>
 </status>`;
 
+/**
+ * Streaming radio that CAN skip: section 4.8's own example, a player on Slacker.
+ *
+ * The `<actions>` block is transcribed verbatim, including the raw ampersands in the URLs. Back
+ * carries no `url`, which is the player saying back is not available on this station.
+ */
+export const SLACKER_STATUS = `<status etag="gg07">
+<state>stream</state>
+<service>Slacker</service>
+<streamUrl>Slacker:station/12345</streamUrl>
+<title1>Slacker Radio</title1>
+<title2>Some Artist</title2>
+<volume>30</volume>
+<actions>
+<action name="back"/>
+<action name="skip" url="/Action?service=Slacker&skip=4799148"/>
+<action icon="/images/loveban/love.png" name="love" notification="Track marked as favorite" state="-1" text="Love" url="/Action?service=Slacker&love=4799148"/>
+<action icon="/images/loveban/ban.png" name="ban" notification="Track banned from this station" state="-1" text="Ban" url="/Action?service=Slacker&ban=4799148"/>
+</actions>
+</status>`;
+
 /** Muted, with the level to come back to. */
 export const MUTED = `<status etag="cc03">
 <state>play</state>

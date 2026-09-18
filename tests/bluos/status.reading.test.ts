@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import { readStatus } from '../../src/bluos/status.reading.js';
-import { AWKWARD_TEXT, FIXED_VOLUME, MUTED, PLAYING_TWOLINE, RADIO, REAL_STREAM_STATUS, SPEC_STATUS, STOPPED } from '../fixtures/bluos.xml.js';
+import {
+    AWKWARD_TEXT,
+    FIXED_VOLUME,
+    MUTED,
+    PLAYING_TWOLINE,
+    RADIO,
+    REAL_STREAM_STATUS,
+    SLACKER_STATUS,
+    SPEC_STATUS,
+    STOPPED,
+} from '../fixtures/bluos.xml.js';
 
 describe('readStatus', () => {
     it('reads the specification’s own example', () => {
@@ -120,6 +130,32 @@ describe('readStatus', () => {
         it('carries the syncStat that matches the player’s SyncStatus etag', () => {
             expect(status?.syncStat).toBe('203');
         });
+    });
+
+    // Section 4.8: a stream is not the queue, but a station can still offer skip, back, love and ban.
+    describe('a streaming station’s actions', () => {
+        it('reads the ones the station offers, with the URL to ask', () => {
+            expect(readStatus(SLACKER_STATUS)?.actions).toEqual({
+                skip: '/Action?service=Slacker&skip=4799148',
+                love: '/Action?service=Slacker&love=4799148',
+                ban: '/Action?service=Slacker&ban=4799148',
+            });
+        });
+
+        // `<action name="back"/>` with no url is the player saying back is NOT available here.
+        it('reads an action with nowhere to ask as not offered', () => {
+            expect(readStatus(SLACKER_STATUS)?.actions.back).toBeUndefined();
+        });
+
+        it('is empty for a stream that offers nothing, and for a queue', () => {
+            expect(readStatus(REAL_STREAM_STATUS)?.actions).toEqual({});
+            expect(readStatus(SPEC_STATUS)?.actions).toEqual({});
+        });
+    });
+
+    // The player's own numbering, which is not the obvious one: 0 repeats the queue, 1 a track, 2 is off.
+    it('reads shuffle and the repeat state as the player numbers it', () => {
+        expect(readStatus(SPEC_STATUS)).toMatchObject({ shuffle: false, repeat: 2 });
     });
 
     it('refuses a body that is not a Status response', () => {
