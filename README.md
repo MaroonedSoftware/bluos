@@ -11,6 +11,8 @@ Control a BluOS player (Bluesound, NAD) from an Elgato Stream Deck.
 - **Volume** turns the player up or down, mutes it, or sets a level, from a key.
 - **Volume dial** puts the volume on a Stream Deck + knob, with the cover on the touch strip.
 - **Shuffle**, **repeat** and **love** where the source supports them.
+- **Stop** and a **sleep timer**. BluOS has no power command; a stopped player goes into standby on
+  its own, and any preset or input key wakes it.
 
 Every volume control can be given a maximum.
 

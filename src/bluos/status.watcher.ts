@@ -159,18 +159,16 @@ export class StatusWatcher {
     private note(answer: CommandAnswer): void {
         const status = this.reading.status;
         if (status === undefined) return;
-        if (
-            answer.state === undefined &&
-            answer.volume === undefined &&
-            answer.muted === undefined &&
-            answer.shuffle === undefined &&
-            answer.repeat === undefined
-        )
-            return;
+        // Any field at all, rather than a list of them: a list is what let a sleep-only answer be thrown
+        // away when the sleep timer was added, because nobody remembered to add it here too.
+        if (Object.values(answer).every(value => value === undefined)) return;
+        // A sleep timer answered as 0 is one that is now off, which the reading says by leaving it out.
+        const { sleep: _was, ...rest } = status;
+        const base = answer.sleep === undefined ? status : answer.sleep > 0 ? { ...status, sleep: answer.sleep } : rest;
         this.publish({
             ...this.reading,
             status: {
-                ...status,
+                ...base,
                 ...(answer.state === undefined ? {} : { state: answer.state, playing: answer.state === 'play' || answer.state === 'stream' }),
                 ...(answer.volume === undefined ? {} : { volume: answer.volume }),
                 ...(answer.muted === undefined ? {} : { muted: answer.muted }),

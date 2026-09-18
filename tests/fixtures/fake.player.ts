@@ -29,6 +29,8 @@ export interface FakePlayerState {
     prid?: string;
     /** The input playing, when one is. */
     inputId?: string;
+    /** Minutes left on the sleep timer. */
+    sleep?: number;
     /** A streaming station's actions, as `<action name url>` elements. No `url` means not available. */
     actions?: { name: string; url?: string }[];
 }
@@ -53,6 +55,11 @@ export class FakePlayer {
     private held: Held[] = [];
     /** What `/Presets` answers. Change it along with `prid`, as a real player does. */
     presets = '<presets prid="1"></presets>';
+    /**
+     * The steps `/Sleep` moves through, ending at 0 for off. THE FAKE'S OWN: only the first, 15, has
+     * been measured on a real player, so no test may depend on the rest.
+     */
+    sleepSteps = [15, 30, 45, 60, 90, 0];
     /** What `/RadioBrowse?service=Capture` answers. */
     inputs = '<radiotime service="Capture"></radiotime>';
     /** Set to make the next reads fail, as an unplugged player would. */
@@ -101,6 +108,17 @@ export class FakePlayer {
             if (this.down === 'garbage') return new Response('<html><body>Router</body></html>', { status: 200 });
 
             if (url.pathname === '/SyncStatus') return this.syncResponse();
+            if (url.pathname === '/Sleep') {
+                const now = this.state.sleep ?? 0;
+                const at = this.sleepSteps.indexOf(now);
+                const next = this.sleepSteps[(at + 1) % this.sleepSteps.length] ?? 0;
+                this.change({ sleep: next > 0 ? next : undefined });
+                return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<sleep>${next > 0 ? next : ''}</sleep>`, { status: 200 });
+            }
+            if (url.pathname === '/Stop') {
+                this.change({ state: 'stop' });
+                return new Response('<state>stop</state>', { status: 200 });
+            }
             if (url.pathname === '/RadioBrowse') return new Response(this.inputs, { status: 200, headers: { 'content-type': 'application/xml' } });
             if (url.pathname === '/Presets') return new Response(this.presets, { status: 200, headers: { 'content-type': 'application/xml' } });
             if (url.pathname !== '/Status') return new Response(`<state>${this.state.state ?? 'play'}</state>`, { status: 200 });

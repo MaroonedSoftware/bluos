@@ -189,6 +189,39 @@
             ]
         },
         {
+            "UUID": "com.maroonedsoftware.bluos.stop",
+            "Name": "Stop",
+            "Tooltip": "Stops the player. It goes into standby on its own a few minutes later, and wakes when anything asks it to play.",
+            "Icon": "imgs/actions/stop/icon",
+            "Controllers": ["Keypad"],
+            "States": [
+                {
+                    "Image": "imgs/actions/stop/key",
+                    "TitleAlignment": "bottom"
+                }
+            ]
+        },
+        {
+            "UUID": "com.maroonedsoftware.bluos.sleep",
+            "Name": "Sleep timer",
+            "Tooltip": "Each press moves the player's sleep timer on a step, and shows the minutes left.",
+            "Icon": "imgs/actions/sleep/icon",
+            "Controllers": ["Keypad"],
+            "DisableAutomaticStates": true,
+            "States": [
+                {
+                    "Name": "Off",
+                    "Image": "imgs/actions/sleep/off",
+                    "TitleAlignment": "bottom"
+                },
+                {
+                    "Name": "On",
+                    "Image": "imgs/actions/sleep/on",
+                    "TitleAlignment": "bottom"
+                }
+            ]
+        },
+        {
             "UUID": "com.maroonedsoftware.bluos.volume",
             "Name": "Volume",
             "Tooltip": "Turns the player up or down, or mutes it. Which one is a setting on the key.",

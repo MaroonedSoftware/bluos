@@ -10,14 +10,16 @@ import {
 import type { PlayerSettings } from '../player.settings.js';
 import type { LoveKeys } from './love.keys.js';
 import type { RepeatKeys, ShuffleKeys } from './mode.keys.js';
+import type { SleepKeys } from './sleep.keys.js';
+import type { StopKeys } from './stop.keys.js';
 
 /**
- * The Stream Deck's side of the three one-press keys that have nothing to configure but a player:
- * shuffle, repeat and love. One base class, because the decorator takes a literal and so each needs
+ * The Stream Deck's side of the one-press keys that have nothing to configure but a player: shuffle,
+ * repeat, love, stop and the sleep timer. One base class, because the decorator takes a literal and so each needs
  * its own class, but what they forward is identical.
  */
 abstract class PressAction extends SingletonAction<PlayerSettings> {
-    constructor(protected readonly keys: ShuffleKeys | RepeatKeys | LoveKeys) {
+    constructor(protected readonly keys: ShuffleKeys | RepeatKeys | LoveKeys | StopKeys | SleepKeys) {
         super();
     }
 
@@ -46,3 +48,9 @@ export class RepeatAction extends PressAction {}
 
 @action({ UUID: 'com.maroonedsoftware.bluos.love' })
 export class LoveAction extends PressAction {}
+
+@action({ UUID: 'com.maroonedsoftware.bluos.stop' })
+export class StopAction extends PressAction {}
+
+@action({ UUID: 'com.maroonedsoftware.bluos.sleep' })
+export class SleepAction extends PressAction {}

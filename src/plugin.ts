@@ -2,8 +2,10 @@ import streamDeck from '@elgato/streamdeck';
 
 import { InputAction } from './actions/input.action.js';
 import { LoveKeys } from './actions/love.keys.js';
-import { LoveAction, RepeatAction, ShuffleAction } from './actions/mode.action.js';
+import { LoveAction, RepeatAction, ShuffleAction, SleepAction, StopAction } from './actions/mode.action.js';
 import { RepeatKeys, ShuffleKeys } from './actions/mode.keys.js';
+import { SleepKeys } from './actions/sleep.keys.js';
+import { StopKeys } from './actions/stop.keys.js';
 import { InputKeys } from './actions/input.keys.js';
 import { NowPlayingAction } from './actions/now.playing.action.js';
 import { NowPlayingKeys } from './actions/now.playing.js';
@@ -65,6 +67,8 @@ const shuffle = new ShuffleKeys(world);
 const repeat = new RepeatKeys(world);
 const love = new LoveKeys(world);
 const strip = new StripDial(world, artwork);
+const stop = new StopKeys(world);
+const sleep = new SleepKeys(world);
 
 streamDeck.actions.registerAction(new NowPlayingAction(nowPlaying));
 streamDeck.actions.registerAction(new TransportAction(transport));
@@ -78,9 +82,11 @@ streamDeck.actions.registerAction(new ShuffleAction(shuffle));
 streamDeck.actions.registerAction(new RepeatAction(repeat));
 streamDeck.actions.registerAction(new LoveAction(love));
 streamDeck.actions.registerAction(new StripDialAction(strip));
+streamDeck.actions.registerAction(new StopAction(stop));
+streamDeck.actions.registerAction(new SleepAction(sleep));
 
 /** Every set of keys, for the events that are about all of them rather than about one key. */
-const everyKey = [nowPlaying, transport, next, previous, volume, dial, preset, input, shuffle, repeat, love, strip];
+const everyKey = [nowPlaying, transport, next, previous, volume, dial, preset, input, shuffle, repeat, love, strip, stop, sleep];
 
 const discovery = new Discovery({ browser: bonjourBrowser(), client: { userAgent } });
 

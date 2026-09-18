@@ -72,6 +72,13 @@ export interface StatusReading {
     /** The input playing, when one is: the same id `/RadioBrowse?service=Capture` lists it under. */
     inputId?: string;
     /**
+     * Minutes left on the sleep timer, when one is set. Absent means no timer.
+     *
+     * The specification documents this field but no command to set it. `/Sleep` does, measured on an
+     * NAD M10 V2: it moves the timer on a step and answers `<sleep>15</sleep>`.
+     */
+    sleep?: number;
+    /**
      * The skip, back, love and ban a streaming station offers, as URLs to ask.
      *
      * This is why a stream does not simply mean "no next track". The specification's own line is
@@ -99,6 +106,11 @@ function streamActions(status: XmlElement): StreamActions {
         if (name === 'skip' || name === 'back' || name === 'love' || name === 'ban') found[name] = url;
     }
     return found;
+}
+
+/** A number of minutes, or `undefined` for none: a timer at 0 is no timer. */
+function positive(value: number | undefined): number | undefined {
+    return value !== undefined && value > 0 ? value : undefined;
 }
 
 /** A repeat state, or `undefined` for anything the specification does not define. */
@@ -157,6 +169,7 @@ export function readStatus(body: string): StatusReading | undefined {
         ...optional('groupName', text(status, 'groupName')),
         ...optional('prid', text(status, 'prid')),
         ...optional('inputId', text(status, 'inputId')),
+        ...optional('sleep', positive(number(status, 'sleep'))),
         actions: streamActions(status),
         ...optional('shuffle', flag(text(status, 'shuffle'))),
         ...optional('repeat', repeatState(number(status, 'repeat'))),

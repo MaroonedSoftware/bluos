@@ -288,6 +288,30 @@ sources offer nothing of the kind, and the heart goes faint to say so before it 
 same section's other action, is deliberately not offered: it skips the track and tells the service
 never to play it again, which is too much to hang off a key pressed without looking.
 
+## Power, such as it is
+
+**BluOS has no power command.** The public API covers playback, volume, presets, inputs, grouping,
+reboot and doorbell chimes, and nothing that turns a player off or on. M10 V2 owners report the same:
+the remote, the standby button on the back, or pausing and letting it switch itself off. The M10's
+fully-off Vacation Mode takes it off the network entirely, so nothing could turn it back on anyway.
+
+So the power story is three keys that already exist or are honest about what they do. **Off** is a
+Stop key or the sleep timer: a stopped player drops into network standby on its own after a few
+minutes, under four watts on an M10 V2. **On** is any preset or input key, because a player in network
+standby wakes the moment anything asks it to play. The Stop key is called Stop and not Power because
+nothing in `/Status` says whether a player is in standby, and a key claiming to show on or off would
+be guessing.
+
+**`/Sleep` is undocumented, and what is known about it is one measurement.** On an NAD M10 V2 running
+BluOS 4.16.22, on 2026-09-18, a `GET /Sleep` from no timer answered `<sleep>15</sleep>` and SET the
+timer to 15 minutes: it is not a read. `/Status` documents a `<sleep>` field with the minutes left. The
+key sends `/Sleep` and shows whatever the player answers, never an assumed list of steps, because only
+the first step has been seen. The fake player's other steps are its own and no test depends on them.
+
+**A command's answer is folded in if it carries any field at all.** The watcher used to list the
+fields it looked for, and the sleep timer's answer was thrown away because nobody added it to the
+list. A test caught it; the check no longer names fields.
+
 ## A maximum volume
 
 **Every volume control can be capped, and it is a safety limit rather than a preference.** On an

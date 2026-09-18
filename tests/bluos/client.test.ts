@@ -89,6 +89,25 @@ describe('BluOsClient', () => {
         });
     });
 
+    // Verbatim from an NAD M10 V2 answering /Sleep on 2026-09-18, from no timer. /Sleep is not in the
+    // specification; this answer is the whole of what is known about it.
+    it('reads the sleep timer a real player set', async () => {
+        const body = '<?xml version="1.0" encoding="UTF-8"?>\n<sleep>15</sleep>';
+        const client = new BluOsClient('http://player:11000', {
+            userAgent: 'test',
+            fetch: (async () => new Response(body)) as typeof globalThis.fetch,
+        });
+        expect(await client.command('/Sleep', {}, never)).toEqual({ sleep: 15 });
+    });
+
+    it('reads an empty sleep answer as the timer now off', async () => {
+        const client = new BluOsClient('http://player:11000', {
+            userAgent: 'test',
+            fetch: (async () => new Response('<sleep></sleep>')) as typeof globalThis.fetch,
+        });
+        expect(await client.command('/Sleep', {}, never)).toEqual({ sleep: 0 });
+    });
+
     describe('what it refuses', () => {
         it('calls an answer that is not XML from a player exactly that', async () => {
             const player = new FakePlayer();

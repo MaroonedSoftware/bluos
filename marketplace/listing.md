@@ -42,6 +42,8 @@ the kitchen and the living room at once.
   cover on the touch strip.
 - **Maximum volume** on every volume key and dial, so one fast turn cannot take an amplifier too far.
 - **Shuffle**, **Repeat** and **Love**, where the source supports them.
+- **Stop** and **Sleep timer**: BluOS players have no power switch over the network, but a stopped
+  player goes into standby on its own, and wakes when any preset or input key is pressed.
 
 It talks to your player directly over your own network, on Mac and Windows. There is no desktop app to
 keep running, no account, no cloud service, and no charge for more than one player.

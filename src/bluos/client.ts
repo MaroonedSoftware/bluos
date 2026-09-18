@@ -47,6 +47,8 @@ export interface CommandAnswer {
     shuffle?: boolean;
     /** From `/Repeat`: 0 repeats the queue, 1 one track, 2 is off. */
     repeat?: 0 | 1 | 2;
+    /** From `/Sleep`: the minutes the timer is now set to, and 0 when it is now off. */
+    sleep?: number;
 }
 
 export interface ClientOptions {
@@ -134,6 +136,11 @@ export class BluOsClient {
                 ...(level === undefined ? {} : { volume: level }),
                 ...(attribute(root, 'mute') === undefined ? {} : { muted: attribute(root, 'mute') === '1' }),
             };
+        }
+        if (root?.name === 'sleep') {
+            // `/Sleep` answers with the timer it left: minutes, or nothing at all once it is off.
+            const minutes = toNumber(root.text.trim());
+            return { sleep: minutes !== undefined && minutes > 0 ? minutes : 0 };
         }
         if (root?.name === 'playlist') {
             // `/Shuffle` and `/Repeat` answer with the queue, carrying the state they left it in.
