@@ -1,4 +1,5 @@
 import type { NowPlayingSettings } from '../actions/now.playing.options.js';
+import type { PresetSettings } from '../actions/preset.options.js';
 import type { DialSettings, VolumeSettings } from '../actions/volume.options.js';
 import type { GlobalSettings, PlayerSettings } from '../player.settings.js';
 import type { ToPlugin } from './inspector.messages.js';
@@ -18,7 +19,7 @@ export function inspectorMessages(uuid: string, action: string) {
         getSettings: () => ({ event: 'getSettings', context: uuid }),
         getGlobalSettings: () => ({ event: 'getGlobalSettings', context: uuid }),
         /** This key's own player, and whatever else this key alone decides. */
-        setSettings: (settings: PlayerSettings & NowPlayingSettings & VolumeSettings & DialSettings) => ({
+        setSettings: (settings: PlayerSettings & NowPlayingSettings & VolumeSettings & DialSettings & PresetSettings) => ({
             event: 'setSettings',
             context: uuid,
             payload: settings,
@@ -27,6 +28,7 @@ export function inspectorMessages(uuid: string, action: string) {
         setGlobalSettings: (settings: GlobalSettings) => ({ event: 'setGlobalSettings', context: uuid, payload: settings }),
         testConnection: () => ({ event: 'sendToPlugin', action, context: uuid, payload: { event: 'testConnection' } satisfies ToPlugin }),
         discover: () => ({ event: 'sendToPlugin', action, context: uuid, payload: { event: 'discover' } satisfies ToPlugin }),
+        listPresets: () => ({ event: 'sendToPlugin', action, context: uuid, payload: { event: 'presets' } satisfies ToPlugin }),
     };
 }
 

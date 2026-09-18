@@ -3,6 +3,8 @@ import streamDeck from '@elgato/streamdeck';
 import { NowPlayingAction } from './actions/now.playing.action.js';
 import { NowPlayingKeys } from './actions/now.playing.js';
 import type { KeysWorld } from './actions/player.keys.js';
+import { PresetAction } from './actions/preset.action.js';
+import { PresetKeys } from './actions/preset.keys.js';
 import { NextAction, PreviousAction } from './actions/skip.action.js';
 import { NextKeys, PreviousKeys } from './actions/skip.keys.js';
 import { TransportAction } from './actions/transport.action.js';
@@ -11,13 +13,14 @@ import { VolumeAction } from './actions/volume.action.js';
 import { VolumeDialAction } from './actions/volume.dial.action.js';
 import { VolumeDial } from './actions/volume.dial.js';
 import { VolumeKeys } from './actions/volume.keys.js';
+import { classify, describe } from './bluos/connection.failure.js';
 import { probePlayer } from './bluos/probe.js';
 import { ArtworkCache } from './display/artwork.js';
 import { bonjourBrowser } from './discovery/bonjour.browser.js';
 import { Discovery } from './discovery/discovery.js';
 import { WatcherPool } from './bluos/watcher.pool.js';
 import { isToPlugin, type ToInspector } from './inspector/inspector.messages.js';
-import { addressFor, describeSettings, type GlobalSettings, type PlayerSettings } from './player.settings.js';
+import { addressFor, describeSettings, originFor, type GlobalSettings, type PlayerSettings } from './player.settings.js';
 
 /**
  * The plugin the Stream Deck app launches, as one ES module with no `node_modules` beside it.
@@ -49,6 +52,7 @@ const next = new NextKeys(world);
 const previous = new PreviousKeys(world);
 const volume = new VolumeKeys(world);
 const dial = new VolumeDial(world, artwork);
+const preset = new PresetKeys(world, artwork);
 
 streamDeck.actions.registerAction(new NowPlayingAction(nowPlaying));
 streamDeck.actions.registerAction(new TransportAction(transport));
@@ -56,9 +60,10 @@ streamDeck.actions.registerAction(new NextAction(next));
 streamDeck.actions.registerAction(new PreviousAction(previous));
 streamDeck.actions.registerAction(new VolumeAction(volume));
 streamDeck.actions.registerAction(new VolumeDialAction(dial));
+streamDeck.actions.registerAction(new PresetAction(preset));
 
 /** Every set of keys, for the events that are about all of them rather than about one key. */
-const everyKey = [nowPlaying, transport, next, previous, volume, dial];
+const everyKey = [nowPlaying, transport, next, previous, volume, dial, preset];
 
 const discovery = new Discovery({ browser: bonjourBrowser(), client: { userAgent } });
 
@@ -99,9 +104,37 @@ streamDeck.settings.onDidReceiveGlobalSettings<GlobalSettings>(ev => {
     for (const keys of everyKey) keys.globalSettingsChanged();
 });
 
+/**
+ * Tells the open panel what presets its key's player has, for the panel's list.
+ *
+ * The panel cannot ask the player itself: it is a Chromium page, and the player is on the other side
+ * of a network the plugin can reach and the page may not. So the plugin reads the list and sends it.
+ */
+async function reportPresets(): Promise<void> {
+    const open = streamDeck.ui.action;
+    if (open === undefined) return;
+    const origin = originFor(await open.getSettings<PlayerSettings>(), global);
+    const tell = (message: ToInspector): Promise<void> => streamDeck.ui.sendToPropertyInspector(message);
+    if (origin === undefined) {
+        await tell({ event: 'presetList', presets: [], problem: 'Choose a player first, and its presets will be listed here.' });
+        return;
+    }
+    try {
+        const list = await pool.for(origin).client.presets(AbortSignal.timeout(10_000));
+        await tell({
+            event: 'presetList',
+            presets: list.presets.map(({ id, name }) => ({ id, name })),
+            ...(list.presets.length === 0 ? { problem: 'This player has no presets yet. Save some in the BluOS app.' } : {}),
+        });
+    } catch (error) {
+        await tell({ event: 'presetList', presets: [], problem: describe(classify(error)).sentence });
+    }
+}
+
 streamDeck.ui.onSendToPlugin(ev => {
     if (!isToPlugin(ev.payload)) return;
     if (ev.payload.event === 'discover') reportPlayers();
+    else if (ev.payload.event === 'presets') void reportPresets();
     else void reportConnection();
 });
 

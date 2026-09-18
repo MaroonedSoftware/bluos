@@ -22,7 +22,7 @@ export interface ServedPlayer {
     close: () => Promise<void>;
 }
 
-export async function servePlayer(bodies: { status?: string; syncStatus?: string } = {}): Promise<ServedPlayer> {
+export async function servePlayer(bodies: { status?: string; syncStatus?: string; presets?: string } = {}): Promise<ServedPlayer> {
     const requests: string[] = [];
     const waiting: { match: (path: string) => boolean; resolve: (path: string) => void }[] = [];
     const server: Server = createServer((request, response) => {
@@ -32,6 +32,11 @@ export async function servePlayer(bodies: { status?: string; syncStatus?: string
             if (!one.match(path)) continue;
             waiting.splice(waiting.indexOf(one), 1);
             one.resolve(path);
+        }
+        if (path.startsWith('/Presets')) {
+            response.writeHead(200, { 'content-type': 'application/xml' });
+            response.end(bodies.presets ?? '<presets prid="1"/>');
+            return;
         }
         // A transport command answers with the state it produced, which is how a key flips without
         // a second request. Anything that is not a status read is treated as one.

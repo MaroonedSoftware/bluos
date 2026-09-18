@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { NOW_PLAYING } from '../../src/actions/action.ids.js';
-import { isToInspector } from '../../src/inspector/inspector.messages.js';
+import { NOW_PLAYING, PRESET } from '../../src/actions/action.ids.js';
+import { isPresetListAnswer, isToInspector } from '../../src/inspector/inspector.messages.js';
+import { SPEC_PRESETS } from '../fixtures/bluos.xml.js';
 import { FakeDeck, type FromPlugin } from '../fixtures/fake.deck.js';
 import { servePlayer, type ServedPlayer } from '../fixtures/serve.player.js';
 
@@ -114,6 +115,34 @@ describe('the settings panel and the plugin', () => {
         deck.fromPanel('key-2', NOW_PLAYING, { event: 'testConnection' });
 
         expect((await answer()).ok).toBe(true);
+    });
+
+    // The panel is a Chromium page and cannot reach the player, so the plugin reads the list for it.
+    it('lists the key’s player’s presets for the panel', async () => {
+        player = await servePlayer({ presets: SPEC_PRESETS });
+        deck = await FakeDeck.launch();
+        deck.appear('key-1', PRESET, { address: player.address });
+        deck.panelOpens('key-1', PRESET);
+        deck.fromPanel('key-1', PRESET, { event: 'presets' });
+
+        const message = await deck.next(m => m.event === 'sendToPropertyInspector' && isPresetListAnswer(m.payload));
+        expect(message.payload).toEqual({
+            event: 'presetList',
+            presets: [
+                { id: 6, name: 'Serenity' },
+                { id: 7, name: '1980s Alternative Rock Classics' },
+            ],
+        });
+    });
+
+    it('explains an empty list rather than showing an empty box', async () => {
+        deck = await FakeDeck.launch();
+        deck.appear('key-1', PRESET);
+        deck.panelOpens('key-1', PRESET);
+        deck.fromPanel('key-1', PRESET, { event: 'presets' });
+
+        const message = await deck.next(m => m.event === 'sendToPropertyInspector' && isPresetListAnswer(m.payload));
+        expect((message.payload as { problem?: string }).problem).toContain('Choose a player first');
     });
 
     it('says nothing to a panel that is not open', async () => {

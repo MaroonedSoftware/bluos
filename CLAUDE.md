@@ -192,6 +192,31 @@ not open", because those are fixed in different places.
 sent through `sendToPropertyInspector`, which takes a JSON value, and an interface does not satisfy
 an index signature. The settings types are aliases for the same reason.
 
+## Presets
+
+**A preset key draws the preset's own name and artwork**, which is the point of it over one that
+merely says "Preset 3": the v1.7 specification added `image` to each preset for exactly this. The
+image is an absolute URL or an `/Artwork` path on the player, and goes through the same resolver and
+cover cache as a Now Playing key.
+
+**The list is read once per player, and again only when `/Status` says it moved.** `<prid>` in
+`/Status` matches `prid` on `/Presets` and changes whenever the presets do, so the long-poll every key
+already has is what says a preset was renamed or deleted. There is no timer.
+
+**A key saved with a preset that has since been deleted says so, and refuses the press** rather than
+firing an id the player no longer knows. It only refuses once the list has actually arrived: before
+that the player is the better judge, and answers an unknown id with an error the key reports anyway.
+The settings panel keeps that choice visible as "no longer on the player" rather than silently
+showing a different one.
+
+**Next and previous are the specification's `id=+1` and `id=-1`**, which loop round the player's
+presets at either end, so two keys can step through all of them. The `+` goes as `%2B`, because a
+bare `+` in a query string is a space.
+
+**The panel's preset list comes from the plugin.** The panel is a Chromium page and cannot reach the
+player, the same reason discovery runs in the plugin, so the panel asks and the plugin reads the list
+and sends it back.
+
 ## A maximum volume
 
 **Every volume control can be capped, and it is a safety limit rather than a preference.** On an

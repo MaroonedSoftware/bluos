@@ -1,5 +1,6 @@
 import { urlFor } from './address.js';
 import { NotAPlayer, PlayerRejected } from './connection.failure.js';
+import { readPresets, type PresetList } from './presets.reading.js';
 import { readStatus, type StatusReading } from './status.reading.js';
 import { readSyncStatus, type SyncReading } from './sync.reading.js';
 import { attribute, parseXml, toNumber } from './xml.js';
@@ -94,6 +95,14 @@ export class BluOsClient {
         const reading = readSyncStatus(body);
         if (!reading) throw new NotAPlayer(body.slice(0, 80).replace(/\s+/g, ' ').trim() || 'an empty answer');
         return reading;
+    }
+
+    /** Reads the player's presets. */
+    async presets(signal: AbortSignal): Promise<PresetList> {
+        const body = await this.read('/Presets', {}, signal);
+        const list = readPresets(body);
+        if (!list) throw new NotAPlayer(body.slice(0, 80).replace(/\s+/g, ' ').trim() || 'an empty answer');
+        return list;
     }
 
     /**

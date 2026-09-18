@@ -67,6 +67,8 @@ export interface StatusReading {
     syncStat?: string;
     /** The group's name when this player leads one. */
     groupName?: string;
+    /** Changes whenever the player's presets change, matching `prid` on `/Presets`. */
+    prid?: string;
     /**
      * The skip, back, love and ban a streaming station offers, as URLs to ask.
      *
@@ -151,6 +153,7 @@ export function readStatus(body: string): StatusReading | undefined {
         ...optional('service', text(status, 'service')),
         ...optional('syncStat', text(status, 'syncStat')),
         ...optional('groupName', text(status, 'groupName')),
+        ...optional('prid', text(status, 'prid')),
         actions: streamActions(status),
         ...optional('shuffle', flag(text(status, 'shuffle'))),
         ...optional('repeat', repeatState(number(status, 'repeat'))),

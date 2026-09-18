@@ -1,5 +1,5 @@
 import { parseAddress } from '../bluos/address.js';
-import { isConnectionAnswer, isPlayersAnswer } from './inspector.messages.js';
+import { isConnectionAnswer, isPlayersAnswer, isPresetListAnswer } from './inspector.messages.js';
 import { inspectorMessages, playerLabel, settingsFrom } from './inspector.protocol.js';
 
 /**
@@ -28,6 +28,7 @@ type PanelSettings = {
     direction?: 'up' | 'down' | 'mute' | 'set';
     level?: number;
     press?: 'mute' | 'playPause';
+    preset?: number | 'next' | 'previous';
     step?: number;
     showLevel?: boolean;
     maxVolume?: number;
@@ -42,10 +43,14 @@ type PanelSettings = {
 const NOW_PLAYING = 'com.maroonedsoftware.bluos.now-playing';
 const VOLUME = 'com.maroonedsoftware.bluos.volume';
 const VOLUME_DIAL = 'com.maroonedsoftware.bluos.volume-dial';
+const PRESET = 'com.maroonedsoftware.bluos.preset';
 const DEFAULT_STEP = 5;
 const DEFAULT_LEVEL = 30;
 
 const field = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
+
+/** A preset as a select holds it, back into what a key's settings hold. */
+const presetValue = (value: string): number | 'next' | 'previous' => (value === 'next' || value === 'previous' ? value : Number(value));
 
 window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, actionInfo) => {
     const parsed = JSON.parse(actionInfo) as ActionInfo;
@@ -70,6 +75,11 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     const levelRow = field<HTMLDivElement>('levelRow');
     const dial = field<HTMLDivElement>('dial');
     const press = field<HTMLSelectElement>('press');
+    const presetGroup = field<HTMLDivElement>('presetGroup');
+    const preset = field<HTMLSelectElement>('preset');
+    const presetHint = field<HTMLParagraphElement>('presetHint');
+    /** The preset this key was last saved with, so the list can select it once it arrives. */
+    let chosenPreset: string = '';
     const maxVolume = field<HTMLInputElement>('maxVolume');
 
     // The display choices belong to the Now Playing key and to nothing else, so the panel only
@@ -78,6 +88,7 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     volume.hidden = parsed.action !== VOLUME;
     limit.hidden = parsed.action !== VOLUME && parsed.action !== VOLUME_DIAL;
     dial.hidden = parsed.action !== VOLUME_DIAL;
+    presetGroup.hidden = parsed.action !== PRESET;
 
     /**
      * Only the field that means something for this direction is shown. A mute key has nothing to step
@@ -103,6 +114,8 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         step.value = String(settings?.step ?? DEFAULT_STEP);
         level.value = String(settings?.level ?? DEFAULT_LEVEL);
         press.value = settings?.press ?? 'mute';
+        chosenPreset = settings?.preset === undefined ? '' : String(settings.preset);
+        if (Array.from(preset.options).some(option => option.value === chosenPreset)) preset.value = chosenPreset;
         showLevel.checked = settings?.showLevel !== false;
         if (!(keepTyping && document.activeElement === maxVolume)) {
             maxVolume.value = settings?.maxVolume === undefined || settings.maxVolume >= 100 ? '' : String(settings.maxVolume);
@@ -147,8 +160,9 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
                   showLevel: showLevel.checked,
               };
         const pressing = dial.hidden ? {} : { press: press.value as 'mute' | 'playPause' };
+        const choosing = presetGroup.hidden || preset.value === '' ? {} : { preset: presetValue(preset.value) };
         const capped = limit.hidden ? {} : typedCap();
-        send(messages.setSettings({ ...settingsFrom(typed), ...shown, ...knob, ...capped, ...pressing }));
+        send(messages.setSettings({ ...settingsFrom(typed), ...shown, ...knob, ...capped, ...pressing, ...choosing }));
         if (typed !== '') send(messages.setGlobalSettings({ defaultAddress: typed }));
     };
 
@@ -187,6 +201,26 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         );
     };
 
+    /**
+     * Shows the player's presets. Next and previous are always offered, because they need no list:
+     * the player steps through its own presets and loops at either end.
+     */
+    const listPresets = (presets: { id: number; name: string }[], problem: string | undefined): void => {
+        preset.replaceChildren(
+            new Option('Choose a preset…', ''),
+            ...presets.map(one => new Option(`${one.id}. ${one.name}`, String(one.id))),
+            new Option('The next preset', 'next'),
+            new Option('The previous preset', 'previous'),
+        );
+        // A key saved with a preset the player no longer has keeps saying so, rather than silently
+        // showing a different choice.
+        if (chosenPreset !== '' && !Array.from(preset.options).some(option => option.value === chosenPreset)) {
+            preset.add(new Option(`Preset ${chosenPreset} (no longer on the player)`, chosenPreset), 1);
+        }
+        preset.value = chosenPreset;
+        presetHint.textContent = problem ?? '';
+    };
+
     /** Asks the plugin what it makes of the settings it was handed. */
     const check = (): void => {
         const parsedAddress = parseAddress(address.value);
@@ -210,6 +244,7 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         // panel opens, so ask the app rather than trusting what came with the panel.
         send(messages.getSettings());
         send(messages.discover());
+        if (!presetGroup.hidden) send(messages.listPresets());
         say('', 'quiet');
     });
 
@@ -222,6 +257,10 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
         if (message.event !== 'sendToPropertyInspector') return;
         if (isPlayersAnswer(message.payload)) {
             listPlayers(message.payload.players, message.payload.browsing, message.payload.outcome);
+            return;
+        }
+        if (isPresetListAnswer(message.payload)) {
+            listPresets(message.payload.presets, message.payload.problem);
             return;
         }
         if (isConnectionAnswer(message.payload)) {
@@ -267,4 +306,8 @@ window.connectElgatoStreamDeckSocket = (port, uuid, registerEvent, _info, action
     maxVolume.addEventListener('change', save);
     level.addEventListener('change', save);
     press.addEventListener('change', save);
+    preset.addEventListener('change', () => {
+        chosenPreset = preset.value;
+        save();
+    });
 };

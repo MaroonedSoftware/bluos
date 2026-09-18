@@ -114,6 +114,16 @@ export const SLACKER_STATUS = `<status etag="gg07">
 </actions>
 </status>`;
 
+/**
+ * Section 6.1's example: two presets, one a Radio Paradise station with an absolute image and one a
+ * Tidal playlist whose image is an `/Artwork` path on the player. The PDF wraps the long attributes
+ * across lines; they are rejoined here, and the entities kept exactly as printed.
+ */
+export const SPEC_PRESETS = `<presets prid="2">
+<preset id="6" name="Serenity" url="RadioParadise:/42:4/Serenity" image="https://img.radioparadise.com/channels/0/42/cover_512x512/0.jpg"/>
+<preset id="7" name="1980s Alternative Rock Classics" url="/Load?service=Tidal&amp;id=fd3f797e-a3e9-4de9-a1e2-b5adb6a57cc7" image="/Artwork?service=Tidal&amp;playlistimage=afacfc12-2403-4caf-a5c5-a2af28d811c8"/>
+</presets>`;
+
 /** Muted, with the level to come back to. */
 export const MUTED = `<status etag="cc03">
 <state>play</state>

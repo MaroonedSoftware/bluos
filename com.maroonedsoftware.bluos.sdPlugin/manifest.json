@@ -94,6 +94,21 @@
             ]
         },
         {
+            "UUID": "com.maroonedsoftware.bluos.preset",
+            "Name": "Preset",
+            "Tooltip": "Plays one of the player's presets, with its own name and artwork, or steps to the next or previous one.",
+            "Icon": "imgs/actions/preset/icon",
+            "Controllers": ["Keypad"],
+            "UserTitleEnabled": false,
+            "States": [
+                {
+                    "Image": "imgs/actions/preset/key",
+                    "TitleAlignment": "bottom",
+                    "FontSize": 9
+                }
+            ]
+        },
+        {
             "UUID": "com.maroonedsoftware.bluos.volume",
             "Name": "Volume",
             "Tooltip": "Turns the player up or down, or mutes it. Which one is a setting on the key.",

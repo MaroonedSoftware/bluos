@@ -9,7 +9,7 @@ import type { BrowseOutcome, DiscoveredPlayer } from '../discovery/discovery.js'
  * believes it typed. The sibling plugin arrived at the same rule for global settings; the only
  * difference here is which message the app delivers.
  */
-export type ToPlugin = { event: 'testConnection' } | { event: 'discover' };
+export type ToPlugin = { event: 'testConnection' } | { event: 'discover' } | { event: 'presets' };
 
 export type ToInspector =
     | { event: 'connection'; ok: boolean; text: string }
@@ -19,18 +19,30 @@ export type ToInspector =
           /** More may still arrive, so a panel can show it is looking rather than that it found nothing. */
           browsing: boolean;
           outcome: BrowseOutcome;
+      }
+    | {
+          event: 'presetList';
+          presets: { id: number; name: string }[];
+          /** Why there is no list, when there is none: no player yet, or one that did not answer. */
+          problem?: string;
       };
 
 export function isToPlugin(value: unknown): value is ToPlugin {
     const event = (value as { event?: unknown } | null)?.event;
-    return typeof value === 'object' && value !== null && (event === 'testConnection' || event === 'discover');
+    return typeof value === 'object' && value !== null && (event === 'testConnection' || event === 'discover' || event === 'presets');
 }
 
 export function isToInspector(value: unknown): value is ToInspector {
     const message = value as { event?: unknown; ok?: unknown; text?: unknown; players?: unknown } | null;
     if (typeof message !== 'object' || message === null) return false;
     if (message.event === 'connection') return typeof message.ok === 'boolean' && typeof message.text === 'string';
+    if (message.event === 'presetList') return Array.isArray((message as { presets?: unknown }).presets);
     return message.event === 'players' && Array.isArray(message.players);
+}
+
+/** A player's presets specifically. */
+export function isPresetListAnswer(value: unknown): value is Extract<ToInspector, { event: 'presetList' }> {
+    return isToInspector(value) && value.event === 'presetList';
 }
 
 /** A connection answer specifically, for a panel that tells the two apart. */
