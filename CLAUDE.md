@@ -217,10 +217,11 @@ checks the committed layout declares each one, rather than comparing against a l
 and left to drift. It was checked by adding a bogus field and watching the test fail.
 
 **The strip's icon is the raw cover**, a raster data URI as the artwork cache already produces it,
-rather than the composed SVG a key draws. The sibling plugin measured that the app's Qt renderer
-draws an embedded raster through `xlink:href` in `setImage` ON A KEY. Nobody has measured it in a
-layout `pixmap`, so nothing here depends on it, and the composite is an upgrade if that measurement
-ever comes back well.
+rather than the composed SVG a key draws. **Measured on a Stream Deck + on 2026-09-18: it draws.** A
+raster data URI in a layout `pixmap` is now known to work. What is still unmeasured is narrower: the
+composed SVG, a raster embedded through `xlink:href` inside an SVG inside a `pixmap`. The sibling
+plugin proved that nesting only in `setImage` on a key. So the composite remains an upgrade, and the
+first step of it is trying it on the device.
 
 ## Every key holds its own player
 
@@ -432,9 +433,11 @@ Robert ran it linked, in developer mode, against Office (the NAD M10 V2 below) o
 reports that it works. Everything before that date was checked against fakes, a loopback player
 serving bytes captured from the M10, and the built bundle driven through `FakeDeck`.
 
-Still not confirmed individually, because they are the parts no fake can settle: that the cover
-draws on the dial's touch strip (a raster in a layout `pixmap`, which the sibling plugin never
-measured either), and the packed `.streamDeckPlugin` installed by double-click rather than linked.
+**The cover draws on the dial's touch strip**, confirmed by Robert on the same day. That was the one
+rendering path no fake could settle and the sibling plugin never measured: a raster data URI in a
+layout `pixmap`.
+
+Still not confirmed: the packed `.streamDeckPlugin` installed by double-click rather than linked.
 
 ### Measured on a real player
 

@@ -20,10 +20,9 @@ export const COARSE = 5;
  * against chasing a rounded level are written and tested once, and both shells stay thin.
  *
  * The strip's icon is the cover as the artwork cache already produces it, a raster data URI, rather
- * than the composed SVG a key draws. The sibling plugin measured that the app's Qt renderer draws an
- * embedded raster through `xlink:href` in `setImage` ON A KEY; nobody has measured it in a layout
- * `pixmap`, so nothing here depends on it and the composite is an upgrade if that measurement ever
- * comes back well.
+ * than the composed SVG a key draws. Measured on a Stream Deck + on 2026-09-18: a raster data URI in
+ * the layout's `pixmap` draws. The composed SVG, a raster embedded through `xlink:href` inside an SVG
+ * inside a `pixmap`, has still never been tried there, so it remains an upgrade to measure first.
  */
 export class VolumeDial extends PlayerKeys<DialFace> {
     private readonly painter = new DialPainter();
