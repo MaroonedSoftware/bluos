@@ -91,6 +91,24 @@ describe('the Now Playing key', () => {
         pool.disposeAll();
     });
 
+    // Another key keeps the player's watcher alive, so a key arriving later is handed a reading that is
+    // half a minute old. Its bar starts from where the track is now, not from that reading.
+    it('draws a key that arrives late at the same place as one that was there all along', async () => {
+        const { keys, pool } = rig(new FakePlayer({ secs: 0, totlen: 72, state: 'play' }));
+        const early = new FakeKey('k1');
+        keys.appear(early, { address: 'p' });
+        await settle();
+        const start = svgOf(early);
+
+        await vi.advanceTimersByTimeAsync(30_000);
+        await settle();
+        const late = new FakeKey('k2');
+        keys.appear(late, { address: 'p' });
+        await settle();
+        expect(svgOf(late)).not.toBe(start);
+        pool.disposeAll();
+    });
+
     // Which is the ordinary case: the player this was built against streams all day.
     it('draws no bar for a stream, which has no length', async () => {
         const { keys, pool } = rig(new FakePlayer({ state: 'stream', secs: 9_696, totlen: undefined, streamUrl: 'TuneIn:x' }));

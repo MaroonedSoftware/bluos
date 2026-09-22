@@ -83,6 +83,25 @@ describe('the now-playing strip', () => {
         pool.disposeAll();
     });
 
+    // A page switch gives every dial a new clock, and the watcher, still lingering, hands it the last
+    // reading, which an unchanged long-poll never replaced. Starting that clock at zero drew the bar
+    // where the track was at the last change and kept it that far behind.
+    it('keeps its place in the track across a page switch', async () => {
+        const { strip, pool } = rig(new FakePlayer({ secs: 10, totlen: 200, state: 'play' }));
+        four(strip);
+        await settle();
+        await vi.advanceTimersByTimeAsync(3_000);
+        await drawn();
+
+        for (const column of [0, 1, 2, 3]) strip.disappear(`d${column}`);
+        await vi.advanceTimersByTimeAsync(1_000);
+        const [, , , time] = four(strip);
+        await settle();
+        await drawn();
+        expect(time!.shown.line).toMatch(/^0:1[34]$/);
+        pool.disposeAll();
+    });
+
     describe('turning', () => {
         it('skips forward one track, and back one', async () => {
             const player = new FakePlayer({ totlen: 200 });

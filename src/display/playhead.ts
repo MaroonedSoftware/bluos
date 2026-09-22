@@ -42,19 +42,29 @@ export function projectPlayhead(status: StatusReading | undefined, carriedMs: nu
  * under-counts and the bar stalls until the next reading re-anchors it, where a wall clock would
  * jump forward by however long the lid was shut. A new reading resets the count, which is what keeps
  * it from drifting.
+ *
+ * A clock that meets a reading for the first time starts it at the reading's age, rounded down to
+ * whole ticks, rather than at zero. A key or dial that comes back onto a page gets a new clock, and
+ * the reading it is handed can be minutes old, because an unchanged long-poll publishes nothing.
+ * Starting at zero drew the bar where the track was at the last change and left it that far behind
+ * until the next one. The age is read once, at the anchor; ticks still carry it from there.
  */
 export class PlayheadClock {
     private anchor = '';
     private carried = 0;
 
-    /** The carried time for this reading, starting over when the reading is a new one. */
-    carriedFor(status: StatusReading | undefined): number {
+    /**
+     * The carried time for this reading, starting over when the reading is a new one.
+     *
+     * `ageMs` is how long ago the reading was taken, and counts only when it starts a new anchor.
+     */
+    carriedFor(status: StatusReading | undefined, ageMs = 0): number {
         // The etag moves on anything the player considers a change, so a new track is a new anchor.
         // `secs` is in it as well, because a seek moves the position without moving the etag.
         const anchor = `${status?.etag ?? ''}:${status?.secs ?? ''}`;
         if (anchor !== this.anchor) {
             this.anchor = anchor;
-            this.carried = 0;
+            this.carried = Math.floor(Math.max(0, ageMs) / TICK_MS) * TICK_MS;
         }
         return this.carried;
     }
@@ -62,4 +72,9 @@ export class PlayheadClock {
     tick(): void {
         this.carried += TICK_MS;
     }
+}
+
+/** How long ago a reading was taken, or 0 when it does not say. */
+export function ageOf(reading: { readAt?: number }, now: number): number {
+    return reading.readAt === undefined ? 0 : now - reading.readAt;
 }

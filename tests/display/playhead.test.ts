@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { StatusReading } from '../../src/bluos/status.reading.js';
-import { PlayheadClock, projectPlayhead, TICK_MS } from '../../src/display/playhead.js';
+import { ageOf, PlayheadClock, projectPlayhead, TICK_MS } from '../../src/display/playhead.js';
 
 const status = (over: Partial<StatusReading> = {}): StatusReading => ({
     playing: true,
@@ -70,5 +70,33 @@ describe('PlayheadClock', () => {
         clock.carriedFor(status({ etag: 'a', secs: 10 }));
         clock.tick();
         expect(clock.carriedFor(status({ etag: 'a', secs: 90 }))).toBe(0);
+    });
+
+    // A control coming back onto a page gets a new clock and may be handed a reading minutes old.
+    it('starts a reading it has not seen at that reading\'s age, in whole ticks', () => {
+        const clock = new PlayheadClock();
+        expect(clock.carriedFor(status({ etag: 'a', secs: 10 }), TICK_MS * 7 + 100)).toBe(TICK_MS * 7);
+    });
+
+    it('reads the age only at the anchor, so ticks carry it from there', () => {
+        const clock = new PlayheadClock();
+        const track = status({ etag: 'a', secs: 10 });
+        clock.carriedFor(track, 3_000);
+        clock.tick();
+        expect(clock.carriedFor(track, 90_000)).toBe(3_000 + TICK_MS);
+    });
+
+    it('never starts below zero', () => {
+        expect(new PlayheadClock().carriedFor(status({ etag: 'a' }), -2_000)).toBe(0);
+    });
+});
+
+describe('ageOf', () => {
+    it('is how long ago the reading was taken', () => {
+        expect(ageOf({ readAt: 1_000 }, 4_500)).toBe(3_500);
+    });
+
+    it('is nothing for a reading that does not say when it was taken', () => {
+        expect(ageOf({}, 4_500)).toBe(0);
     });
 });

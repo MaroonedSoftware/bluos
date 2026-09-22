@@ -184,6 +184,13 @@ easy to brush, so without the guard a knocked knob could run through half an alb
 `skipTarget` as the Next and Previous keys, so a station's own skip works here too. Pressing or
 tapping plays or pauses. The volume stays on the volume dial, which is why turning does not do it.
 
+**A new playhead clock starts at the reading's age, not at zero.** A page switch gives every dial
+and key a new clock, and the watcher, lingering or kept alive by another control, hands it the last
+reading, which an unchanged long-poll never replaced. Starting at zero drew the bar where the track
+was at the last change, minutes behind, and it stayed that far behind until something changed. The
+age comes from `readAt` once, at the anchor, and ticks carry it from there, so a suspended process
+still stalls rather than jumps.
+
 **A failure is said once, in the title quarter**, rather than four times across the strip.
 
 **The manifest test checks every dial layout against the code that fills it**, reading each frame

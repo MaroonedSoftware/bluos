@@ -4,7 +4,7 @@ import type { StatusReading } from '../bluos/status.reading.js';
 import type { Reading } from '../bluos/status.watcher.js';
 import { coverKey, resolveArtworkUrl, type ArtworkCache } from '../display/artwork.js';
 import { DialPainter, type DialFace } from '../display/dial.face.js';
-import { PlayheadClock, projectPlayhead, TICK_MS } from '../display/playhead.js';
+import { ageOf, PlayheadClock, projectPlayhead, TICK_MS } from '../display/playhead.js';
 import { stripSlice, type StripView } from '../display/strip.face.js';
 import type { KeysWorld } from './player.keys.js';
 import { PlayerKeys } from './player.keys.js';
@@ -121,7 +121,7 @@ export class StripDial extends PlayerKeys<StripFace> {
         const cover = key === undefined ? undefined : this.artwork.peek(key)?.cover;
         if (key !== undefined && this.artwork.peek(key) === undefined) void this.fetchCover(id, key, status);
 
-        const playhead = projectPlayhead(status, clock.carriedFor(status));
+        const playhead = projectPlayhead(status, clock.carriedFor(status, ageOf(reading, this.now())));
         return {
             ...(cover === undefined ? {} : { cover }),
             ...(status?.firstLine === undefined ? {} : { firstLine: status.firstLine }),

@@ -2,7 +2,7 @@ import { describe } from '../bluos/connection.failure.js';
 import type { Reading } from '../bluos/status.watcher.js';
 import { coverKey, resolveArtworkUrl, type ArtworkCache } from '../display/artwork.js';
 import { asKeyImage, nowPlayingSvg, progressStep } from '../display/key.image.js';
-import { PlayheadClock, projectPlayhead, TICK_MS } from '../display/playhead.js';
+import { ageOf, PlayheadClock, projectPlayhead, TICK_MS } from '../display/playhead.js';
 import type { KeyFace } from './key.face.js';
 import { optionsFrom, SHOW_EVERYTHING, type NowPlayingKeySettings, type NowPlayingOptions } from './now.playing.options.js';
 import { KeyControls } from './key.controls.js';
@@ -46,6 +46,7 @@ export class NowPlayingKeys extends KeyControls {
     constructor(
         world: KeysWorld,
         private readonly artwork: ArtworkCache,
+        private readonly now: () => number = () => Date.now(),
     ) {
         super(world);
     }
@@ -82,7 +83,7 @@ export class NowPlayingKeys extends KeyControls {
         const cover = key === undefined ? undefined : this.artwork.peek(key)?.cover;
         if (key !== undefined && this.artwork.peek(key) === undefined) void this.fetchCover(id, key);
 
-        const playhead = options.progress ? projectPlayhead(status, drawn.clock.carriedFor(status)) : undefined;
+        const playhead = options.progress ? projectPlayhead(status, drawn.clock.carriedFor(status, ageOf(reading, this.now()))) : undefined;
 
         this.paint(id, {
             title: wordsFor(reading, options),
