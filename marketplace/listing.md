@@ -14,7 +14,7 @@ name once it has been submitted.
 
 ## Name
 
-BluOS
+BluOS Remote
 
 ## Short description
 
