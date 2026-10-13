@@ -114,7 +114,7 @@ describe('the settings panel and the plugin', () => {
         deck.panelOpens('key-2', NOW_PLAYING);
         deck.fromPanel('key-2', NOW_PLAYING, { event: 'testConnection' });
 
-        expect((await answer()).ok).toBe(true);
+        expect(await answer()).toEqual({ event: 'connection', ok: true, text: 'Connected to Office (NAD M10 V2).' });
     });
 
     // The panel is a Chromium page and cannot reach the player, so the plugin reads the list for it.

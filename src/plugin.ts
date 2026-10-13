@@ -199,5 +199,9 @@ streamDeck.settings.onDidReceiveSettings<PlayerSettings>(ev => {
 streamDeck.system.onSystemDidWakeUp(() => pool.refreshAll());
 
 await streamDeck.connect();
-global = await streamDeck.settings.getGlobalSettings<GlobalSettings>();
+// The answer is not assigned here. It arrives as a `didReceiveGlobalSettings`, which the handler
+// above has already stored, and the promise settles a few microtasks later. A panel write landing in
+// the same read from the socket is handled in between, so assigning the answer here put the stale
+// settings back over the new ones and a key lost its default player. It failed one run in six.
+await streamDeck.settings.getGlobalSettings<GlobalSettings>();
 logger.info(`BluOS plugin ${streamDeck.info.plugin.version} connected; default player is ${global.defaultAddress ?? 'unset'}.`);
