@@ -130,7 +130,7 @@ const pictures: Record<string, string> = {
         row(250, [
             at(nowPlayingSvg({ cover: purple, step: 13, stale: false, shade: true }), ['Deadair', 'Led Zeppelin']),
             at(volumeSvg('up'), ['42']),
-        ]) + caption('BluOS', 'Control a Bluesound or NAD player from your Stream Deck'),
+        ]) + caption('BluOS Remote', 'Control a Bluesound or NAD player from your Stream Deck'),
     ),
 };
 

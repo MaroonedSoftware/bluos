@@ -1,4 +1,4 @@
-# BluOS for Stream Deck
+# BluOS Remote for Stream Deck
 
 Control a BluOS player (Bluesound, NAD) from an Elgato Stream Deck.
 
