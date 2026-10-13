@@ -538,9 +538,9 @@ of `pnpm test`. Two different things come of that, and they were conflated once 
 - **In a sandboxed session it ERRORS** with "URL must be resolvable" on a manifest that is perfectly
   fine, because the validator cannot reach the network at all. A URL that `curl` fetches with a 200
   fails this way too, which is what gives the game away.
-- **With the network it WARNS**, "URL should return success (received 404)", because
-  `github.com/maroonedsoftware/bluos` does not exist yet. A warning, so `validate` and `installer` both
-  succeed, and the warning goes when the repository is pushed.
+- **With the network it WARNS**, "URL should return success (received 404)", if
+  `github.com/maroonedsoftware/bluos` cannot be fetched anonymously, which it could not while the
+  repository was private. A warning, so `validate` and `installer` both succeed either way.
 
 **The plugin must be launched from inside the `.sdPlugin` folder.** The SDK reads `manifest.json`
 off the current working directory the first time an action is registered. Launched from anywhere
@@ -558,6 +558,26 @@ plugin answers it.
 in the app's Plugins folder; `streamdeck restart` is refused with "Feature only enabled in developer
 mode" until `streamdeck dev` has turned that on. Installing the packed `.streamDeckPlugin` needs
 neither.
+
+## Main is protected, and the plan decides whether it can be
+
+**`main` takes changes only through a pull request, squash-merged, with `build` green**, under a
+repository ruleset copied from deadair's: no deletion, no force-push, a pull request with no
+required approvals, squash the only merge method, and `build` the one required check. Repository
+admins can bypass it, as there, so a release fix is never locked out. Squash is also the only merge
+method the repository settings allow, and merged branches are deleted.
+
+**The required check is the job name `build`, not deadair's `ci-ok`.** deadair needs a gate job
+because its jobs run or skip by what a pull request touched and its shards are named by a matrix, so
+no fixed list of names can be required. Here there is one job that always runs. If `build.yml` ever
+grows a matrix or a conditional job, add a gate job then and point the ruleset at it, or a renamed
+job leaves the ruleset requiring a check that never reports and every pull request waits forever.
+
+**Rulesets need the repository public or the organisation on a paid plan.** MaroonedSoftware is on
+GitHub's free plan, and on a private repository the API refuses both rulesets and classic branch
+protection with "Upgrade to GitHub Pro or make this repository public". That is why the repository
+was made public on 2026-10-13, after a check of the whole history for anything that should not be.
+Making it private again silently drops the protection rather than failing.
 
 ## What is verified, and what is not
 
