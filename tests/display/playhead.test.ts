@@ -73,7 +73,7 @@ describe('PlayheadClock', () => {
     });
 
     // A control coming back onto a page gets a new clock and may be handed a reading minutes old.
-    it('starts a reading it has not seen at that reading\'s age, in whole ticks', () => {
+    it("starts a reading it has not seen at that reading's age, in whole ticks", () => {
         const clock = new PlayheadClock();
         expect(clock.carriedFor(status({ etag: 'a', secs: 10 }), TICK_MS * 7 + 100)).toBe(TICK_MS * 7);
     });
