@@ -6,9 +6,10 @@ import { join } from 'node:path';
 /**
  * Draws the plugin's icon, which Elgato requires as a PNG at 256 and 512 pixels, and its category icon.
  *
- * A play mark over the word "BluOS", with the BluOS "B" mark standing in for the letter. The SVG
- * written beside the PNGs is the source; `qlmanage` rasterises it, as it does the Marketplace
- * pictures, and `sips` would not. Run it by hand when the mark changes and commit what it writes.
+ * The plugin's name, "BluOS Remote", with the BluOS "B" mark standing in for the letter. "Remote"
+ * is what keeps the icon from reading as an official BluOS product. The SVG written beside the
+ * PNGs is the source; `qlmanage` rasterises it, as it does the Marketplace pictures, and `sips`
+ * would not. Run it by hand when the mark changes and commit what it writes.
  *
  * The B is traced from the mark at 240 pixels: one solid stroke, two bowls that pinch to a point on
  * the right where the middle bar meets them. The trace matched the original's pixels at 93 percent
@@ -19,7 +20,7 @@ import { join } from 'node:path';
  */
 
 const NAVY = '#0B1B33';
-const BLUE = '#2F7BEA';
+const SKY = '#7FB3FF'; // "Remote", lighter than the B so the name reads as one word and a qualifier
 const WHITE = '#FFFFFF';
 
 /** The B's centreline, in the 240-pixel frame it was traced in. Its stem is x 62.5, its bars y 54.5 and 185.5. */
@@ -28,9 +29,9 @@ const B_PATH =
     'M176 120 C165 133 152 142 131 142.5 H90 C72 142.5 62.5 150 62.5 166 V185.5 H134 C159 185.5 179 168 179 145 C179 134 178 126 176 120 Z';
 
 const FONT = 'Helvetica Neue, Helvetica, Arial, sans-serif';
-const TYPE = 58; // the word's font size
+const TYPE = 64; // the word's font size
 const CAP = TYPE * 0.714; // Helvetica's cap height
-const BASELINE = 198;
+const BASELINE = 126; // with "Remote" 50 below, the pair sits centred on the tile
 const B_STROKE = 19; // in the trace's frame, so roughly the type's stem once scaled
 const B_SCALE = CAP / (131 + B_STROKE);
 const B_WIDTH = (179 - 62.5 + B_STROKE) * B_SCALE;
@@ -46,9 +47,9 @@ const b =
 const svg = size =>
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="${size}" height="${size}">` +
     `<rect width="256" height="256" rx="52" fill="${NAVY}"/>` +
-    `<path d="M111 58 L163 88 L111 118 Z" fill="${BLUE}" stroke="${BLUE}" stroke-width="14" stroke-linejoin="round"/>` +
     b +
     `<text x="${LEFT + B_WIDTH + GAP}" y="${BASELINE}" font-family="${FONT}" font-size="${TYPE}" font-weight="500" fill="${WHITE}" letter-spacing="-1">luOS</text>` +
+    `<text x="128" y="${BASELINE + 50}" text-anchor="middle" font-family="${FONT}" font-size="38" font-weight="400" fill="${SKY}" letter-spacing="0.5">Remote</text>` +
     `</svg>\n`;
 
 /** Heavier again than in the icon, so the stroke is about two pixels at the size the app draws it. */
