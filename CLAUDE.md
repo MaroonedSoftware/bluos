@@ -475,6 +475,36 @@ bytes a real M10 sent. That proves the same bytes the unit tests parse also surv
 socket and the panel. Loopback is the only network a sandboxed test run has, and it is enough.
 Do not write a test that needs the real player: it would pass on one machine and fail everywhere.
 
+## The icon
+
+**It spells "BluOS Remote", with the BluOS "B" mark standing in for the letter.** The B is what makes
+it recognisable at a glance in the app's action list. "Remote" under it, in a lighter blue, is what
+keeps it from reading as an official BluOS product, which a tile of the bare wordmark would. A play
+symbol above the word was tried and dropped to give the two lines room.
+
+**The B is Lenbrook's trademark, and using it needs their permission before the Marketplace.** That is
+written here because it is a release blocker no test catches. If they agree, their own vector
+replaces the trace.
+
+**The B is traced, and it is one solid stroke, not an outline.** At a glance in a 240-pixel image it
+looks like an outlined ribbon, and the first trace drew it that way and was wrong. Reading the pixels
+showed a single stroke about 11 pixels wide whose two bowls pinch to a point on the right where the
+middle bar meets them. The path in `tools/plugin.icon.mjs` matched the original's pixels at 93
+percent at a stroke of 10.5. It is drawn heavier in the icon so it carries the weight of the type
+beside it, and heavier again in the category icon so the stroke stays about two pixels wide at 20.
+
+**The category icon is the B alone**, white, because Elgato draws it as a 20-pixel silhouette and a
+word does not read at that size.
+
+**`qlmanage` draws an SVG at its DECLARED size**, and fits that into the thumbnail it was asked for. An
+SVG declared at 256 and rendered with `-s 512` came out as a 256 icon in the corner of a 512 canvas.
+So each PNG is rendered from an SVG declared at that PNG's size. The Marketplace pictures avoid the
+same trap by drawing square at full size.
+
+**"luOS" and "Remote" are live text in Helvetica Neue**, which every Mac has and which `qlmanage`
+renders. If the script ever has to run elsewhere, convert the letters to outlines rather than trust
+the fallback fonts.
+
 ## The bundle
 
 **One ES module at `com.maroonedsoftware.bluos.sdPlugin/bin/plugin.js`, with `bin/package.json`
