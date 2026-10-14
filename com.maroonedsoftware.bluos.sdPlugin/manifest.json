@@ -2,7 +2,7 @@
     "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
     "UUID": "com.maroonedsoftware.bluos",
     "Name": "BluOS Remote",
-    "Version": "0.1.0.0",
+    "Version": "0.1.1.0",
     "Author": "Marooned Software",
     "Description": "Control a BluOS player from your Stream Deck: what is playing with its cover art, play and pause, skip, and the volume on a key or a dial.",
     "URL": "https://github.com/maroonedsoftware/bluos",
