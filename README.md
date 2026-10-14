@@ -1,3 +1,5 @@
+<img src="com.maroonedsoftware.bluos.sdPlugin/imgs/plugin/icon@2x.png" alt="BluOS Remote" width="128">
+
 # BluOS Remote for Stream Deck
 
 Control a BluOS player (Bluesound, NAD) from an Elgato Stream Deck.
@@ -61,6 +63,19 @@ the installer and publishes it on a GitHub release. Edit the package's version, 
 
 Uploading to the Elgato Marketplace is the one step left by hand. `marketplace/listing.md` holds the
 text and the pictures it takes.
+
+## The icon
+
+The icon spells "BluOS Remote" with the BluOS "B" mark in place of the letter, and the category icon
+is the B on its own. Both are drawn by `tools/plugin.icon.mjs`, which writes the SVGs and renders the
+PNGs with macOS's `qlmanage`. Run it after changing the mark and commit what it writes:
+
+```bash
+node tools/plugin.icon.mjs
+```
+
+The B is Lenbrook's trademark. The plugin needs their permission to use it before it is listed on
+the Marketplace.
 
 ## Licence
 

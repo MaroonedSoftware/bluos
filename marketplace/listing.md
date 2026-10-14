@@ -52,6 +52,11 @@ keep running, no account, no cloud service, and no charge for more than one play
 
 Music
 
+## Icon
+
+`com.maroonedsoftware.bluos.sdPlugin/imgs/plugin/icon@2x.png`, drawn by `tools/plugin.icon.mjs`. It
+uses Lenbrook's BluOS "B" mark, so their permission comes before the listing is submitted.
+
 ## Requires
 
 A BluOS player on the same network: Bluesound, NAD, PSB, Dali, and others. Stream Deck 7.1 or later.
