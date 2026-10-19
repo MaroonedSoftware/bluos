@@ -67,8 +67,8 @@ text and the pictures it takes.
 ## The icon
 
 The icon spells "BluOS Remote" with the BluOS "B" mark in place of the letter, and the category icon
-is the B on its own. Both are drawn by `tools/plugin.icon.mjs`, which writes the SVGs and renders the
-PNGs with macOS's `qlmanage`. Run it after changing the mark and commit what it writes:
+is the B on its own. Both are drawn by `tools/plugin.icon.mjs`, which writes the category SVG and
+renders the icon's PNGs with macOS's `qlmanage` and `sips`. Run it after changing the mark and commit what it writes:
 
 ```bash
 node tools/plugin.icon.mjs

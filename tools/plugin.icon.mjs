@@ -7,15 +7,23 @@ import { join } from 'node:path';
  * Draws the plugin's icon, which Elgato requires as a PNG at 256 and 512 pixels, and its category icon.
  *
  * The plugin's name, "BluOS Remote", with the BluOS "B" mark standing in for the letter. "Remote"
- * is what keeps the icon from reading as an official BluOS product. The SVG written beside the
- * PNGs is the source; `qlmanage` rasterises it, as it does the Marketplace pictures, and `sips`
- * would not. Run it by hand when the mark changes and commit what it writes.
+ * is what keeps the icon from reading as an official BluOS product. This script is the source; it
+ * writes no SVG beside the PNGs, because the plugin icon must be a PNG and an `icon.svg` under the
+ * same manifest path is one the app could choose instead. `qlmanage` rasterises the SVG, as it does
+ * the Marketplace pictures, and `sips` scales the result. Run it by hand when the mark changes and
+ * commit what it writes.
+ *
+ * `qlmanage` is trusted only at 1024. Asked for a 256 thumbnail it drew the tile 219 pixels wide in
+ * the corner of an opaque white canvas, which Elgato's review sent back as the wrong size. So the
+ * icon is rendered once at 1024 and `sips` scales that down to each size. And `qlmanage` writes no
+ * transparency, so a tile with rounded corners came out with white corners: the tile is square and
+ * fills the canvas, and the app rounds it where it wants it round.
  *
  * The B is traced from the mark at 240 pixels: one solid stroke, two bowls that pinch to a point on
  * the right where the middle bar meets them. The trace matched the original's pixels at 93 percent
  * at a stroke of 10.5; it is drawn heavier here so it carries the same weight as the type beside it.
  *
- * The category icon is the B alone, white, because Elgato draws it as a 20-pixel silhouette where a
+ * The category icon is the B alone, white, because Elgato draws it as a 28-pixel silhouette where a
  * word would not read. It is an SVG the app scales itself, so it needs no rendering.
  */
 
@@ -43,36 +51,38 @@ const b =
     `<g transform="translate(${LEFT + (B_STROKE / 2) * B_SCALE} ${BASELINE - CAP + (B_STROKE / 2) * B_SCALE}) scale(${B_SCALE}) translate(-62.5 -54.5)">` +
     `<path d="${B_PATH}" fill="none" stroke="${WHITE}" stroke-width="${B_STROKE}" stroke-linejoin="miter" stroke-miterlimit="2"/></g>`;
 
-/** `qlmanage` draws an SVG at its declared size, so each PNG is rendered from one declared at that size. */
-const svg = size =>
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="${size}" height="${size}">` +
-    `<rect width="256" height="256" rx="52" fill="${NAVY}"/>` +
+/** `qlmanage` draws an SVG at its declared size, so it is declared at the size it is rendered at. */
+const RENDER = 1024;
+const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="${RENDER}" height="${RENDER}">` +
+    `<rect width="256" height="256" fill="${NAVY}"/>` +
     b +
     `<text x="${LEFT + B_WIDTH + GAP}" y="${BASELINE}" font-family="${FONT}" font-size="${TYPE}" font-weight="500" fill="${WHITE}" letter-spacing="-1">luOS</text>` +
     `<text x="128" y="${BASELINE + 50}" text-anchor="middle" font-family="${FONT}" font-size="38" font-weight="400" fill="${SKY}" letter-spacing="0.5">Remote</text>` +
     `</svg>\n`;
 
-/** Heavier again than in the icon, so the stroke is about two pixels at the size the app draws it. */
+/** Heavier again than in the icon, so the stroke stays two pixels or more at the size the app draws it. */
 const CATEGORY_STROKE = 18;
 const category =
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="40.75 40 160 160" width="20" height="20">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="40.75 40 160 160" width="28" height="28">` +
     `<path d="${B_PATH}" fill="none" stroke="#fff" stroke-width="${CATEGORY_STROKE}" stroke-linejoin="miter" stroke-miterlimit="2"/></svg>\n`;
 
 const dir = 'com.maroonedsoftware.bluos.sdPlugin/imgs/plugin';
-writeFileSync(`${dir}/icon.svg`, svg(256));
 writeFileSync(`${dir}/category-icon.svg`, category);
+rmSync(`${dir}/icon.svg`, { force: true });
 
 const scratch = mkdtempSync(join(tmpdir(), 'icon-'));
 try {
+    writeFileSync(join(scratch, 'icon.svg'), svg);
+    execFileSync('qlmanage', ['-t', '-s', String(RENDER), '-o', scratch, join(scratch, 'icon.svg')], { stdio: 'ignore' });
     for (const [size, name] of [
         [256, 'icon.png'],
         [512, 'icon@2x.png'],
     ]) {
-        writeFileSync(join(scratch, 'icon.svg'), svg(size));
-        execFileSync('qlmanage', ['-t', '-s', String(size), '-o', scratch, join(scratch, 'icon.svg')], { stdio: 'ignore' });
-        renameSync(join(scratch, 'icon.svg.png'), `${dir}/${name}`);
+        execFileSync('sips', ['-z', String(size), String(size), join(scratch, 'icon.svg.png'), '--out', join(scratch, name)], { stdio: 'ignore' });
+        renameSync(join(scratch, name), `${dir}/${name}`);
     }
 } finally {
     rmSync(scratch, { recursive: true, force: true });
 }
-console.log('wrote category-icon.svg, icon.svg, icon.png (256) and icon@2x.png (512)');
+console.log('wrote category-icon.svg, icon.png (256) and icon@2x.png (512)');

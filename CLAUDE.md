@@ -491,15 +491,27 @@ looks like an outlined ribbon, and the first trace drew it that way and was wron
 showed a single stroke about 11 pixels wide whose two bowls pinch to a point on the right where the
 middle bar meets them. The path in `tools/plugin.icon.mjs` matched the original's pixels at 93
 percent at a stroke of 10.5. It is drawn heavier in the icon so it carries the weight of the type
-beside it, and heavier again in the category icon so the stroke stays about two pixels wide at 20.
+beside it, and heavier again in the category icon so the stroke stays at least two pixels wide.
 
-**The category icon is the B alone**, white, because Elgato draws it as a 20-pixel silhouette and a
+**The category icon is the B alone**, white, because Elgato draws it as a 28-pixel silhouette and a
 word does not read at that size.
+
+**Elgato's review sent 0.1.1 back for the size of this icon, and its header was not the problem.**
+The PNG said 256 by 256, which is all the manifest test then checked. Inside it `qlmanage` had drawn
+the tile 219 pixels wide in the top-left corner of an opaque white canvas, so the preferences pane
+showed a shrunken icon with a white band on two sides. The 512 was full size but had opaque white
+corners, because `qlmanage` writes no transparency at all and the tile was rounded. So the generator
+now renders once at 1024, where `qlmanage` draws one to one, and `sips` scales that to 256 and 512;
+and the tile is square, filling the canvas. The test reads the pixels at every edge and corner of
+both PNGs, and it was checked against the rejected icons, both of which it fails.
 
 **`qlmanage` draws an SVG at its DECLARED size**, and fits that into the thumbnail it was asked for. An
 SVG declared at 256 and rendered with `-s 512` came out as a 256 icon in the corner of a 512 canvas.
-So each PNG is rendered from an SVG declared at that PNG's size. The Marketplace pictures avoid the
-same trap by drawing square at full size.
+So the SVG is declared at 1024, the size it is rendered at. The Marketplace pictures avoid the same
+trap by drawing square at full size.
+
+**There is no `icon.svg` in the plugin folder.** Elgato requires the plugin icon as a PNG, and an SVG
+under the same manifest path is one the app could pick instead. The script is the source.
 
 **"luOS" and "Remote" are live text in Helvetica Neue**, which every Mac has and which `qlmanage`
 renders. If the script ever has to run elsewhere, convert the letters to outlines rather than trust

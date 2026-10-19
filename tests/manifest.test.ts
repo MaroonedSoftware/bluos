@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync as read } from 'node:fs';
 
 import { ACTION_IDS, ENCODERS, PLUGIN, STRIP, VOLUME_DIAL } from '../src/actions/action.ids.js';
+import { readPng } from './fixtures/png.pixels.js';
 
 // `streamdeck validate` checks much of this too, but it fetches the manifest's URLs first and so
 // needs the network, which a test run does not have. These are the parts that break without anybody
@@ -73,6 +74,32 @@ describe('the plugin manifest', () => {
     it('has the plugin icon as a PNG at the two sizes the store asks for', () => {
         expect(pngWidth(join(plugin, `${manifest.Icon}.png`))).toBe(256);
         expect(pngWidth(join(plugin, `${manifest.Icon}@2x.png`))).toBe(512);
+    });
+
+    it('has no SVG plugin icon the app could choose over the PNG', () => {
+        expect(existsSync(join(plugin, `${manifest.Icon}.svg`))).toBe(false);
+    });
+
+    // The header said 256 on the icon Elgato's review sent back: the tile inside it was 219 wide,
+    // in the corner of a white canvas. So the pixels at every edge and corner must be the tile's.
+    it.each(['.png', '@2x.png'])('draws the plugin icon%s to every edge', suffix => {
+        const icon = readPng(join(plugin, `${manifest.Icon}${suffix}`));
+        const far = icon.width - 1;
+        const mid = icon.width >> 1;
+        const edges: [number, number][] = [
+            [0, 0],
+            [far, 0],
+            [0, far],
+            [far, far],
+            [mid, 0],
+            [mid, far],
+            [0, mid],
+            [far, mid],
+        ];
+        for (const [x, y] of edges) {
+            const [r, g, b, a] = icon.at(x, y);
+            expect({ x, y, opaque: a === 255, navy: r < 40 && g < 60 && b < 90 }).toEqual({ x, y, opaque: true, navy: true });
+        }
     });
 
     it('states the package’s version with a build number after it', () => {
